@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>独立开发者作品展示</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <h1 class="logo">DevShowcase</h1>
+            <nav class="nav">
+                <a href="#" class="nav-link active" data-filter="all">全部</a>
+                <a href="#" class="nav-link" data-filter="web">网站应用</a>
+                <a href="#" class="nav-link" data-filter="mobile">移动应用</a>
+                <a href="#" class="nav-link" data-filter="tool">工具</a>
+                <a href="#" class="nav-link" data-filter="game">游戏</a>
+                <a href="#leaderboard" class="nav-link">排行榜</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main">
+        <section class="hero">
+            <div class="container">
+                <h2>发现优秀的独立开发者作品</h2>
+                <p>汇聚全球独立开发者的创意之作，探索无限可能</p>
+            </div>
+        </section>
+
+        <div class="content-wrapper">
+            <div class="container">
+                <div class="content-grid">
+                    <!-- 左侧：项目展示 -->
+                    <div class="left-column">
+                        <section class="projects-section">
+                            <div class="projects-grid" id="projectsGrid">
+                                <!-- 项目将通过JavaScript动态生成 -->
+                            </div>
+                        </section>
+                    </div>
+
+                    <!-- 右侧：排行榜 -->
+                    <div class="right-column">
+                        <section class="leaderboard-section" id="leaderboard">
+                            <h2 class="section-title">热门排行榜</h2>
+                            <div class="leaderboard" id="leaderboardContent">
+                                <!-- 排行榜将通过JavaScript动态生成 -->
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 DevShowcase. 展示独立开发者的创意作品</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
