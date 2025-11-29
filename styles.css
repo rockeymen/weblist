@@ -46,17 +46,47 @@ body {
     margin-bottom: 0;
 }
 
+/* 导航栏容器 */
+.nav-container {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+}
+
+/* 导航栏容器滚动条样式 */
+.nav-container::-webkit-scrollbar {
+    height: 4px;
+}
+
+.nav-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.nav-container::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 2px;
+}
+
+.nav-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.2);
+}
+
 /* 导航栏样式 */
 .nav {
     display: flex;
     gap: 1rem;
-    flex-wrap: wrap;
+    flex-direction: row;
+    flex-wrap: nowrap;
     justify-content: flex-start;
     align-items: center;
-    padding: 0.8rem 0;
+    padding: 0.8rem 20px;
     background-color: white;
     border-bottom: 1px solid #eee;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    white-space: nowrap;
+    min-width: max-content;
 }
 
 /* 粘性导航栏 */
@@ -415,8 +445,10 @@ body {
         text-align: center;
     }
 
+    /* 保持导航栏横向布局 */
     .nav {
-        justify-content: center;
+        justify-content: flex-start;
+        padding: 0.8rem 20px;
     }
 
     .hero h2 {
@@ -450,12 +482,12 @@ body {
 
 @media (max-width: 480px) {
     .nav {
-        flex-direction: column;
-        gap: 0.5rem;
+        flex-direction: row;
+        gap: 0.8rem;
     }
 
     .nav-link {
-        display: block;
+        display: inline-block;
     }
 
     .hero h2 {
