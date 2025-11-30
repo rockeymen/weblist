@@ -113,7 +113,7 @@ const projectsData = [
 // DOM 元素
 const projectsGrid = document.getElementById('projectsGrid');
 const leaderboardContent = document.getElementById('leaderboardContent');
-const navLinks = document.querySelectorAll('.nav-link[data-filter]');
+const navLinks = document.querySelectorAll('.nav-link'); // 选择所有导航链接
 
 // 初始化页面
 function init() {
@@ -231,7 +231,7 @@ function createLeaderboardItem(project, rank) {
 
 // 设置事件监听器
 function setupEventListeners() {
-    // 分类筛选
+    // 处理所有导航链接点击事件
     navLinks.forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
@@ -240,15 +240,30 @@ function setupEventListeners() {
             navLinks.forEach(l => l.classList.remove('active'));
             link.classList.add('active');
             
-            // 获取筛选条件
-            const filter = link.dataset.filter;
-            
-            // 筛选项目
-            if (filter === 'all') {
-                renderProjects(projectsData);
+            // 检查是否是排行榜链接
+            if (link.getAttribute('href') === '#leaderboard') {
+                // 滚动到排行榜，调整偏移量以确保完整显示
+                const leaderboardSection = document.getElementById('leaderboard');
+                const headerHeight = 64; // 与header高度匹配
+                const navHeight = 56; // 导航栏高度
+                const offset = headerHeight + navHeight + 20; // 添加一些额外间距
+                
+                const leaderboardTop = leaderboardSection.offsetTop - offset;
+                window.scrollTo({
+                    top: leaderboardTop,
+                    behavior: 'smooth'
+                });
             } else {
-                const filteredProjects = projectsData.filter(project => project.category === filter);
-                renderProjects(filteredProjects);
+                // 获取筛选条件
+                const filter = link.dataset.filter;
+                
+                // 筛选项目
+                if (filter === 'all') {
+                    renderProjects(projectsData);
+                } else {
+                    const filteredProjects = projectsData.filter(project => project.category === filter);
+                    renderProjects(filteredProjects);
+                }
             }
         });
     });
