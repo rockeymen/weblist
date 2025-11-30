@@ -166,6 +166,13 @@ function createProjectCard(project) {
         window.open(project.link, '_blank', 'noopener noreferrer');
     });
     
+    // 为点赞区域添加点击事件，实现整个div区域都能点赞
+    const likesDiv = card.querySelector('.likes');
+    likesDiv.addEventListener('click', (e) => {
+        e.stopPropagation(); // 阻止事件冒泡，防止触发卡片点击
+        toggleLike(project.id, likesDiv.querySelector('.like-btn'));
+    });
+    
     // 为点赞按钮添加事件冒泡阻止，防止触发卡片点击
     const likeBtn = card.querySelector('.like-btn');
     likeBtn.addEventListener('click', (e) => {

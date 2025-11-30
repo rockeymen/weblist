@@ -279,6 +279,13 @@ body {
     font-size: 0.75rem;
     margin-left: auto;
     cursor: pointer;
+    padding: 0.3rem 0.6rem;
+    border-radius: 12px;
+    transition: background-color 0.2s ease;
+}
+
+.likes:hover {
+    background-color: rgba(0, 0, 0, 0.05);
 }
 
 /* 点赞按钮样式 */
