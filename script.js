@@ -148,12 +148,12 @@ function createProjectCard(project) {
         <div class="project-info">
             <div class="name-row">
                 <h3 class="project-name">${project.name}</h3>
-                <div class="author-id">@${project.authorId}</div>
             </div>
-            <div class="project-stats">
+            <div class="meta-row">
+                <div class="author-id">@${project.authorId}</div>
                 <div class="likes">
                     <button class="like-btn" onclick="toggleLike(${project.id}, this)">
-                        ♡
+                        ♥
                     </button>
                     <span class="like-count">${project.likes}</span>
                 </div>
@@ -216,7 +216,7 @@ function createLeaderboardItem(project, rank) {
                 <div class="leaderboard-category">${categoryNames[project.category]}</div>
             </div>
             <div class="leaderboard-likes">
-                ♡ ${project.likes}
+                ♥ ${project.likes}
             </div>
         </div>
     `;

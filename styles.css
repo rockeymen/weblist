@@ -149,7 +149,7 @@ body {
 /* 左右两栏布局 */
 .content-grid {
     display: grid;
-    grid-template-columns: 1fr 300px;
+    grid-template-columns: 1fr 320px;
     gap: 1.5rem;
     align-items: start;
 }
@@ -188,7 +188,7 @@ body {
 
 /* 右侧栏标题样式 */
 .right-column .section-title {
-    text-align: left;
+    text-align: center;
     font-size: 1.5rem;
     margin-bottom: 1rem;
     padding-bottom: 0.8rem;
@@ -231,6 +231,14 @@ body {
     width: 100%;
 }
 
+/* 元信息行容器 */
+.meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
 .project-name {
     font-size: 1rem;
     font-weight: 700;
@@ -256,15 +264,12 @@ body {
     flex-shrink: 0;
 }
 
+/* 移除中间横线，点赞区域已移到name-row */
 .project-stats {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-top: 0.3rem;
-    border-top: 1px solid #eee;
-    line-height: 1;
+    display: none;
 }
 
+/* 点赞区域样式 */
 .likes {
     display: flex;
     align-items: center;
@@ -272,8 +277,11 @@ body {
     color: #666;
     font-weight: 500;
     font-size: 0.75rem;
+    margin-left: auto;
+    cursor: pointer;
 }
 
+/* 点赞按钮样式 */
 .like-btn {
     background: none;
     border: none;
@@ -286,12 +294,19 @@ body {
     font-weight: 400;
 }
 
-.like-btn:hover {
-    color: #ff6b6b;
+/* 鼠标悬停时，心形变成实心灰色 */
+.likes:hover .like-btn {
+    color: #666;
     transform: scale(1.05);
 }
 
+/* 点击后，心形变成实心红色 */
 .liked {
+    color: #ff6b6b;
+}
+
+/* 已点赞状态下悬停效果 */
+.likes:hover .like-btn.liked {
     color: #ff6b6b;
 }
 
@@ -307,7 +322,7 @@ body {
     border-radius: 12px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     overflow: hidden;
-    padding: 1.5rem;
+    padding: 0.8rem;
 }
 
 .leaderboard {
@@ -320,7 +335,7 @@ body {
 .leaderboard-item {
     display: flex;
     align-items: center;
-    padding: 0.8rem;
+    padding: 0.6rem 0.4rem;
     border-bottom: 1px solid #eee;
     transition: background-color 0.3s ease;
     width: 100%;
@@ -337,10 +352,10 @@ body {
 }
 
 .rank {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     font-weight: 700;
-    margin-right: 0.6rem;
-    width: 25px;
+    margin-right: 0.5rem;
+    width: 22px;
     text-align: center;
     flex-shrink: 0;
 }
@@ -353,15 +368,15 @@ body {
     display: flex;
     align-items: center;
     flex: 1;
-    gap: 0.8rem;
+    gap: 0.6rem;
     overflow: hidden;
 }
 
 .leaderboard-image {
-    width: 50px;
-    height: 50px;
+    width: 45px;
+    height: 45px;
     object-fit: cover;
-    border-radius: 6px;
+    border-radius: 5px;
     background-color: #f0f0f0;
     flex-shrink: 0;
 }
