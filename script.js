@@ -220,7 +220,6 @@ function createLeaderboardItem(project, rank) {
             <div class="leaderboard-info">
                 <h3 class="leaderboard-name">${project.name}</h3>
                 <div class="author-id">@${project.authorId}</div>
-                <div class="leaderboard-category">${categoryNames[project.category]}</div>
             </div>
             <div class="leaderboard-likes">
                 ♥ ${project.likes}

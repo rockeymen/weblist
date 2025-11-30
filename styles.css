@@ -444,14 +444,14 @@ body {
 .leaderboard-item {
     display: flex;
     align-items: center;
-    padding: 0.6rem 0.8rem;
+    padding: 0.5rem 0.7rem;
     border-bottom: 1px solid #f1f5f9;
     transition: all 0.3s ease;
     width: 100%;
     box-sizing: border-box;
     cursor: pointer;
     border-radius: 12px;
-    margin-bottom: 0.4rem;
+    margin-bottom: 0.3rem;
     background: transparent;
     min-height: auto;
 }
