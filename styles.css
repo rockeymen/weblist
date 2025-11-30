@@ -282,7 +282,7 @@ body {
 
 .projects-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 1.5rem;
     margin-top: 0;
 }
@@ -298,60 +298,38 @@ body {
     color: #1a202c;
 }
 
-/* 项目卡片 - 现代卡片设计 */
+/* 项目卡片 - 简约设计 */
 .project-card {
     background: white;
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid #e2e8f0;
+    transition: all 0.3s ease;
     cursor: pointer;
     position: relative;
-    border: 1px solid #e2e8f0;
-    backdrop-filter: blur(10px);
+    overflow: hidden;
 }
 
 .project-card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
-    border-color: rgba(79, 70, 229, 0.3);
+    border-color: #4f46e5;
+    transform: translateY(-2px);
 }
 
-/* 项目图片 - 现代图片样式 */
+/* 项目图片 - 简约设计 */
 .project-image {
     width: 100%;
     height: auto;
     object-fit: cover;
-    background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
     aspect-ratio: 16 / 9;
+    background-color: #f7fafc;
     transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
 }
 
 .project-card:hover .project-image {
     transform: scale(1.02);
 }
 
-.project-image::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(135deg, rgba(79, 70, 229, 0.05) 0%, rgba(124, 58, 237, 0.05) 100%);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.project-card:hover .project-image::before {
-    opacity: 1;
-}
-
 /* 项目信息 */
 .project-info {
-    padding: 1rem;
+    padding: 0.8rem;
 }
 
 /* 名称行容器 */
@@ -359,7 +337,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.3rem;
     width: 100%;
 }
 
@@ -369,18 +347,18 @@ body {
     justify-content: space-between;
     align-items: center;
     width: 100%;
-    padding-top: 0.5rem;
+    padding-top: 0.3rem;
     border-top: 1px solid #f1f5f9;
 }
 
 .project-name {
-    font-size: 1.1rem;
+    font-size: 1rem;
     font-weight: 700;
     color: #1a202c;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    line-height: 1.3;
+    line-height: 1.2;
     margin-bottom: 0;
     flex: 1;
     margin-right: 0.8rem;
@@ -408,7 +386,7 @@ body {
     display: none;
 }
 
-/* 点赞区域样式 - 现代按钮设计 */
+/* 点赞区域样式 - 简约设计 */
 .likes {
     display: flex;
     align-items: center;
@@ -419,18 +397,16 @@ body {
     margin-left: auto;
     cursor: pointer;
     padding: 0.4rem 0.8rem;
-    border-radius: 16px;
-    transition: all 0.3s ease;
-    background: #f7fafc;
-    border: 1px solid #e2e8f0;
+    transition: color 0.3s ease, border-color 0.3s ease, transform 0.3s ease;
+    background: transparent;
+    border: none;
 }
 
 .likes:hover {
-    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-    color: white;
+    color: #4f46e5;
+    border: 1px solid #4f46e5;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
-    border-color: transparent;
+    border-radius: 16px;
 }
 
 /* 点赞按钮样式 */
@@ -446,9 +422,9 @@ body {
     font-weight: 400;
 }
 
-/* 鼠标悬停时，心形变成实心灰色 */
+/* 鼠标悬停时，心形颜色变化 */
 .likes:hover .like-btn {
-    color: white;
+    color: #4f46e5;
     transform: scale(1.1);
 }
 
@@ -459,7 +435,7 @@ body {
 
 /* 已点赞状态下悬停效果 */
 .likes:hover .like-btn.liked {
-    color: white;
+    color: #ef4444;
 }
 
 /* 排行榜区域 */
@@ -468,15 +444,14 @@ body {
     background-color: transparent;
 }
 
-/* 右侧栏排行榜样式 - 现代卡片设计 */
+/* 右侧栏排行榜样式 - 简约设计 */
 .right-column .leaderboard-section {
     background: white;
-    border-radius: 16px;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-    overflow: hidden;
     padding: 1.5rem;
     border: 1px solid #e2e8f0;
-    backdrop-filter: blur(10px);
+    transform: scale(0.9);
+    transform-origin: top center;
+    margin-bottom: -10%;
 }
 
 .leaderboard {
@@ -489,14 +464,13 @@ body {
 .leaderboard-item {
     display: flex;
     align-items: center;
-    padding: 0.5rem 0.7rem;
+    padding: 0.5rem 0;
     border-bottom: 1px solid #f1f5f9;
     transition: all 0.3s ease;
     width: 100%;
     box-sizing: border-box;
     cursor: pointer;
-    border-radius: 12px;
-    margin-bottom: 0.3rem;
+    margin-bottom: 0;
     background: transparent;
     min-height: auto;
 }
@@ -507,15 +481,14 @@ body {
 }
 
 .leaderboard-item:hover {
-    background: linear-gradient(135deg, rgba(79, 70, 229, 0.05) 0%, rgba(124, 58, 237, 0.05) 100%);
-    transform: translateX(4px);
-    border-color: rgba(79, 70, 229, 0.2);
+    background-color: #f7fafc;
+    transform: translateX(2px);
 }
 
-/* 排名样式 - 现代排名设计 */
+/* 排名样式 - 简约设计 */
 .rank {
     font-size: 1.25rem;
-    font-weight: 800;
+    font-weight: 700;
     margin-right: 0.8rem;
     width: 28px;
     text-align: center;
@@ -524,28 +497,23 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 8px;
-    background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e0 100%);
-    color: #4a5568;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    color: #718096;
+    background: transparent;
 }
 
 .rank.gold {
-    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-    color: white;
-    box-shadow: 0 2px 12px rgba(251, 191, 36, 0.3);
+    color: #fbbf24;
+    background: transparent;
 }
 
 .rank.silver {
-    background: linear-gradient(135deg, #cbd5e0 0%, #94a3b8 100%);
-    color: white;
-    box-shadow: 0 2px 12px rgba(203, 213, 224, 0.3);
+    color: #cbd5e0;
+    background: transparent;
 }
 
 .rank.bronze {
-    background: linear-gradient(135deg, #f7931a 0%, #d97706 100%);
-    color: white;
-    box-shadow: 0 2px 12px rgba(247, 147, 26, 0.3);
+    color: #f7931a;
+    background: transparent;
 }
 
 .leaderboard-content {
@@ -560,17 +528,14 @@ body {
     width: 50px;
     height: 50px;
     object-fit: cover;
-    border-radius: 12px;
-    background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
+    background-color: #f7fafc;
     flex-shrink: 0;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    border: 2px solid white;
     transition: all 0.3s ease;
+    border: 1px solid #e2e8f0;
 }
 
 .leaderboard-item:hover .leaderboard-image {
     transform: scale(1.05);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .leaderboard-info {
