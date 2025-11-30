@@ -44,7 +44,7 @@ body {
     align-items: flex-end;
     flex-wrap: wrap;
     gap: 1rem;
-    padding-left: 120px;
+    padding-left: 0;
 }
 
 .logo {
