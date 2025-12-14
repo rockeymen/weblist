@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>灰烬行者：废土传说</title>
+    <style>
+        :root {
+            --bg-color: #050505;
+            --main-green: #33ff33;
+            --bright-green: #ccffcc;
+            --dim-green: #114411;
+            --alert-red: #ff4444;
+            --highlight-yellow: #ffff00;
+            --card-bg: #0e1a0e;
+            --slot-bg: #1a1a1a;
+            --safe-top: env(safe-area-inset-top, 24px);
+            --safe-bottom: env(safe-area-inset-bottom, 20px);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--main-green);
+            font-family: "Courier New", Courier, monospace;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* CRT 扫描线滤镜 */
+        .crt-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            background-size: 100% 3px, 3px 100%;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        /* --- 顶部状态栏 --- */
+        .stats-bar {
+            display: flex;
+            justify-content: space-between;
+            padding: calc(5px + var(--safe-top)) 15px 5px 15px; /* 减少内边距 */
+            background: #000;
+            border-bottom: 2px solid var(--dim-green);
+            height: auto; 
+            box-sizing: border-box;
+            align-items: flex-end;
+            position: relative;
+            z-index: 50;
+            flex-shrink: 0; /* 防止被压缩 */
+        }
+
+        .stat-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0 4px;
+            position: relative;
+        }
+
+        .stat-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 4px;
+        }
+        
+        .stat-icon { font-size: 22px; margin-bottom: 2px; }
+        .stat-label { font-size: 10px; font-weight: bold; opacity: 0.9; }
+
+        /* 箭头指示器 */
+        .stat-indicator {
+            font-size: 20px;
+            font-weight: 900;
+            height: 20px;
+            line-height: 20px;
+            text-align: center;
+            width: 100%;
+            opacity: 0;
+            transition: opacity 0.1s;
+            position: absolute;
+            top: 0; 
+            right: 0;
+            transform: translate(15px, -5px); 
+            pointer-events: none;
+            text-shadow: 0 0 5px #000;
+        }
+        .arrow-up { color: var(--main-green); content: "▲"; }
+        .arrow-down { color: var(--alert-red); content: "▼"; }
+        .stat-indicator.visible { opacity: 1 !important; }
+
+        .progress-container {
+            width: 100%;
+            height: 6px;
+            background: #222;
+            border: 1px solid var(--dim-green);
+            border-radius: 2px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--main-green);
+            width: 50%;
+            transition: width 0.3s ease, background-color 0.3s;
+        }
+
+        /* --- 游戏主区域 --- */
+        .game-container {
+            flex: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            overflow: hidden;
+            padding-top: 10px; 
+        }
+
+        .distance-display {
+            font-size: 14px;
+            font-weight: bold;
+            color: var(--bright-green);
+            background: rgba(0,0,0,0.8);
+            padding: 2px 10px;
+            border-radius: 4px;
+            border: 1px solid var(--dim-green);
+            margin-bottom: 5px;
+            letter-spacing: 1px;
+            flex-shrink: 0;
+        }
+
+        /* 结果反馈文字区 */
+        .result-message-area {
+            min-height: 40px; /* 减小高度占位 */
+            width: 90%;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 5px;
+            font-size: 16px;
+            color: var(--highlight-yellow);
+            text-shadow: 1px 1px 0 #000;
+            pointer-events: none;
+            font-weight: bold;
+            line-height: 1.2;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 8px;
+            padding: 5px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            flex-shrink: 0;
+        }
+        .result-message-area.visible { opacity: 1; }
+
+        /* --- 卡牌区域 (比例调整) --- */
+        .card-wrapper {
+            width: 85%;
+            max-width: 340px;
+            height: 360px; /* 稍微减小整体高度 */
+            position: relative;
+            transition: transform 0.3s ease-out, opacity 0.3s; 
+            z-index: 10;
+            flex-shrink: 0; /* 防止被挤压 */
+        }
+
+        .card {
+            width: 100%;
+            height: 100%;
+            border: 3px solid var(--main-green);
+            background: var(--card-bg);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 0 25px rgba(51, 255, 51, 0.08);
+        }
+
+        /* 图像区变大 */
+        .card-image-area {
+            height: 220px; /* 增加高度，占比更大 */
+            background: #000;
+            border-bottom: 2px solid var(--dim-green);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 文字区变小 */
+        .card-text-area {
+            flex: 1;
+            padding: 10px 15px; /* 减少内边距 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 16px; /* 字体适中 */
+            font-weight: 500;
+            line-height: 1.4;
+            color: #eeffee;
+        }
+
+        /* --- 装备栏系统 --- */
+        .inventory-section {
+            width: 95%;
+            max-width: 360px;
+            height: 80px; /* 高度适中 */
+            display: flex;
+            justify-content: space-around;
+            z-index: 20;
+            margin-top: 10px; /* 拉近与卡牌距离 */
+            margin-bottom: 5px; /* 留出底部空间 */
+            flex-shrink: 0;
+        }
+
+        .item-slot {
+            width: 70px;
+            height: 80px;
+            background: var(--slot-bg);
+            border: 2px solid #444;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .item-slot.has-item {
+            border-color: #448844;
+            background: #081808;
+        }
+        
+        .item-slot.preview-highlight {
+            border-color: var(--highlight-yellow) !important;
+            background-color: #333300 !important;
+            box-shadow: 0 0 15px var(--highlight-yellow);
+            transform: scale(1.05);
+        }
+
+        .item-slot.active-triggered {
+            animation: item-flash 0.5s ease-out;
+        }
+
+        .item-icon { 
+            font-size: 32px;
+            margin-bottom: 0; 
+            z-index: 1;
+        }
+        
+        .item-name { 
+            font-size: 10px;
+            color: #88aa88;
+            position: absolute;
+            bottom: 2px;
+            width: 100%;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .item-count-badge { 
+            position: absolute;
+            top: 2px;
+            right: 4px;
+            font-size: 18px;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 1px 1px 0 #000;
+            z-index: 2;
+        }
+
+        /* 装备详情弹窗 (调整位置) */
+        .item-popup {
+            position: absolute;
+            bottom: 100px; /* 防止遮挡 */
+            background: rgba(0,0,0,0.95);
+            border: 2px solid var(--main-green);
+            padding: 15px;
+            width: 260px;
+            text-align: center;
+            z-index: 100;
+            display: none;
+            box-shadow: 0 0 30px #000;
+            border-radius: 8px;
+        }
+
+        /* 左右选择提示 */
+        .fixed-choice-overlay {
+            position: absolute;
+            top: 120px; 
+            font-size: 32px;
+            font-weight: bold;
+            padding: 10px 20px;
+            border: 4px solid;
+            border-radius: 8px;
+            opacity: 0;
+            z-index: 50;
+            pointer-events: none;
+            background: rgba(0,0,0,0.8);
+            transition: opacity 0.1s;
+        }
+        .choice-left { left: 20px; color: var(--alert-red); border-color: var(--alert-red); transform: rotate(-10deg); }
+        .choice-right { right: 20px; color: var(--main-green); border-color: var(--main-green); transform: rotate(10deg); }
+
+        /* --- 底部按钮 (缩小版) --- */
+        .controls {
+            /* 减少上下内边距 */
+            padding: 8px 20px calc(8px + var(--safe-bottom)); 
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            box-sizing: border-box;
+            background: #000;
+            border-top: 1px solid var(--dim-green);
+            flex-shrink: 0;
+        }
+
+        .btn {
+            background: #050505;
+            border: 2px solid var(--dim-green);
+            color: var(--main-green);
+            /* 减小按钮高度 */
+            padding: 12px 0; 
+            width: 48%;
+            font-family: inherit;
+            font-size: 18px; /* 字体稍微减小 */
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.1s;
+        }
+        .btn:active { background: var(--main-green); color: black; border-color: var(--main-green); }
+
+        /* 界面遮罩 */
+        .screen-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #050505;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            text-align: center;
+            padding: 30px;
+            box-sizing: border-box;
+        }
+        .hidden { display: none; }
+        
+        h1 { font-size: 40px; margin-bottom: 10px; text-shadow: 2px 2px var(--dim-green); }
+        .death-title { color: var(--alert-red); font-size: 32px; margin: 20px 0; }
+        .story-text { margin-bottom: 30px; line-height: 1.6; font-size: 16px; max-width: 90%; color: #ddd; }
+
+        .slide-out-left { transform: translateX(-150%) rotate(-20deg) !important; opacity: 0; }
+        .slide-out-right { transform: translateX(150%) rotate(20deg) !important; opacity: 0; }
+
+        @keyframes item-flash {
+            0% { background-color: #fff; border-color: #fff; transform: scale(1.1); }
+            100% { background-color: var(--slot-bg); border-color: var(--dim-green); transform: scale(1); }
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="crt-overlay"></div>
+
+<!-- 顶部状态栏 -->
+<div class="stats-bar">
+    <div class="stat-item" id="stat-energy">
+        <div class="stat-indicator"></div>
+        <div class="stat-header">
+            <span class="stat-icon">⚡</span>
+            <span class="stat-label">体力</span>
+        </div>
+        <div class="progress-container"><div class="progress-fill" style="width: 50%"></div></div>
+    </div>
+    <div class="stat-item" id="stat-health">
+        <div class="stat-indicator"></div>
+        <div class="stat-header">
+            <span class="stat-icon">❤️</span>
+            <span class="stat-label">健康</span>
+        </div>
+        <div class="progress-container"><div class="progress-fill" style="width: 50%"></div></div>
+    </div>
+    <div class="stat-item" id="stat-supplies">
+        <div class="stat-indicator"></div>
+        <div class="stat-header">
+            <span class="stat-icon">📦</span>
+            <span class="stat-label">物资</span>
+        </div>
+        <div class="progress-container"><div class="progress-fill" style="width: 50%"></div></div>
+    </div>
+    <div class="stat-item" id="stat-sanity">
+        <div class="stat-indicator"></div>
+        <div class="stat-header">
+            <span class="stat-icon">🧠</span>
+            <span class="stat-label">心智</span>
+        </div>
+        <div class="progress-container"><div class="progress-fill" style="width: 50%"></div></div>
+    </div>
+</div>
+
+<!-- 游戏主区域 -->
+<div class="game-container">
+    <div class="distance-display">距离绿区: <span id="dist-display">1000</span> KM</div>
+
+    <!-- 结果反馈文字区 -->
+    <div id="result-message" class="result-message-area"></div>
+
+    <div class="fixed-choice-overlay choice-left" id="choice-left-label">拒绝</div>
+    <div class="fixed-choice-overlay choice-right" id="choice-right-label">接受</div>
+
+    <div class="card-wrapper" id="card-wrapper">
+        <div class="card">
+            <div class="card-image-area">
+                <canvas id="card-canvas" width="220" height="200"></canvas>
+            </div>
+            <div class="card-text-area" id="card-desc">
+                系统初始化中...
+            </div>
+        </div>
+    </div>
+
+    <!-- 装备栏 -->
+    <div class="inventory-section" id="inventory-container">
+        <!-- JS生成插槽 -->
+        <div class="item-slot" onclick="showItemDetail(0)"></div>
+        <div class="item-slot" onclick="showItemDetail(1)"></div>
+        <div class="item-slot" onclick="showItemDetail(2)"></div>
+        <div class="item-slot" onclick="showItemDetail(3)"></div>
+    </div>
+
+    <!-- 装备详情弹窗 -->
+    <div id="item-popup" class="item-popup">
+        <h3 id="popup-name">装备名</h3>
+        <p id="popup-desc">说明文字</p>
+        <p style="margin-top:15px; color:#aaa; font-size:12px">点击任意处关闭</p>
+    </div>
+</div>
+
+<!-- 底部控制按钮 -->
+<div class="controls">
+    <button class="btn" onclick="triggerChoice('left')" 
+            onmouseenter="showPreview('left')" onmouseleave="hidePreview()">
+        ◀ <span id="btn-left-text">左滑</span>
+    </button>
+    <button class="btn" onclick="triggerChoice('right')"
+            onmouseenter="showPreview('right')" onmouseleave="hidePreview()">
+        <span id="btn-right-text">右滑</span> ▶
+    </button>
+</div>
+
+<!-- 开始界面 -->
+<div id="start-screen" class="screen-overlay">
+    <h1>灰烬行者</h1>
+    <div style="font-size:14px; margin-bottom:20px; opacity:0.8; letter-spacing:2px">ASH WALKER: SURVIVAL</div>
+    <p class="story-text">
+        穿越 1000 公里辐射废土。<br>
+        保持四项数值平衡 (0~100)。<br>
+        <br>
+        提示：<br>按住卡牌左右滑动时，<br>黄色高亮表示装备将生效。
+    </p>
+    <button class="btn" style="width:200px" onclick="startGame()">开始旅程</button>
+</div>
+
+<!-- 死亡界面 -->
+<div id="game-over-screen" class="screen-overlay hidden">
+    <h2 style="color:#666">连接中断</h2>
+    <h1 id="death-title" class="death-title">死因</h1>
+    <p id="death-desc" class="story-text">描述</p>
+    <p style="font-size:18px">存活距离: <span id="final-score" style="color:#fff; font-weight:bold">0</span> KM</p>
+    <button class="btn" style="width:200px" onclick="showStartScreen()">返回首页</button>
+</div>
+
+<!-- 通关界面 -->
+<div id="victory-screen" class="screen-overlay hidden">
+    <h1 style="color: #ffff00">目标抵达</h1>
+    <p class="story-text">
+        高墙的大门缓缓打开。<br>
+        你活下来了，带着废土的传说。
+    </p>
+    <button class="btn" style="width:200px" onclick="showStartScreen()">返回首页</button>
+</div>
+
+<script>
+    // --- 游戏配置 ---
+    const CONFIG = {
+        totalDistance: 1000,
+        kmPerCard: 30
+    };
+
+    // --- 装备数据库 ---
+    const ITEMS_DB = {
+        'knife': { name: '多功能刀', icon: '🔪', desc: '【拾荒/战斗】收益增加。', maxUses: 6 },
+        'mask': { name: '防毒面具', icon: '😷', desc: '健康伤害减半。', maxUses: 5 },
+        'boots': { name: '军用战靴', icon: '🥾', desc: '体力消耗减少。', maxUses: 8 },
+        'radio': { name: '旧收音机', icon: '📻', desc: '几率抵消心智下降。', maxUses: 5 },
+        'medkit_guide': { name: '急救手册', icon: '📖', desc: '治疗效果提升。', maxUses: 4 }
+    };
+
+    let state = {
+        stats: { energy: 50, health: 50, supplies: 50, sanity: 50 },
+        distance: 0,
+        currentCard: null,
+        isPlaying: false,
+        inventory: [] 
+    };
+
+    // --- 卡牌数据库 ---
+    const CARDS = [
+        { type: "scavenge", text: "一具尸体脚上穿着完好的【军用战靴】。", 
+          left: { text: "穿上", effect: { sanity: -5 }, reward: 'boots', outcome: "靴子很合脚，虽然有点味道。" }, 
+          right: { text: "离开", effect: { energy: -2 }, outcome: "你不想打扰死者。" } },
+        
+        { type: "scavenge", text: "废弃五金店货架深处藏着一把【多功能刀】。", 
+          left: { text: "拿走", effect: { energy: -5 }, reward: 'knife', outcome: "这把刀很锋利。" }, 
+          right: { text: "无视", effect: { supplies: 2 }, outcome: "你只拿了几颗螺丝钉。" } },
+        
+        { type: "scavenge", text: "防空洞入口挂着一个【防毒面具】。", 
+          left: { text: "戴上", effect: { health: -5 }, reward: 'mask', outcome: "滤芯有点旧，但比没有强。" }, 
+          right: { text: "太脏", effect: { sanity: -2 }, outcome: "上面满是霉菌。" } },
+
+        { type: "enemy", text: "双头变异犬正在啃食路障。", 
+          left: { text: "开枪", effect: { supplies: -10, energy: -5 }, outcome: "枪声吓跑了它。" }, 
+          right: { text: "喂肉", effect: { supplies: -20, health: 0 }, outcome: "它叼着肉跑了。" } },
+        
+        { type: "enemy", text: "三个掠夺者正在烤火，旁边放着背包。", 
+          left: { text: "偷袭", effect: { health: -20, supplies: 25, sanity: -10 }, outcome: "一番血战，你抢走了物资。" }, 
+          right: { text: "绕路", effect: { energy: -15, supplies: -5 }, outcome: "你小心翼翼地绕过了营地。" } },
+        
+        { type: "scavenge", text: "自动贩卖机里还有一瓶“核子可乐”。", 
+          left: { text: "喝掉", effect: { energy: 15, health: -5 }, outcome: "味道像洁厕灵，但让你精神一振。" }, 
+          right: { text: "砸开", effect: { supplies: 5, energy: -5 }, outcome: "只找到几个硬币。" } },
+        
+        { type: "scavenge", text: "你发现了一窝未变异的鸟蛋。", 
+          left: { text: "生吃", effect: { supplies: 10, health: -5 }, outcome: "有点腥，肚子开始隐隐作痛。" }, 
+          right: { text: "煮熟", effect: { supplies: 5, energy: -5 }, outcome: "一顿不错的早餐。" } },
+
+        { type: "event", text: "酸雨云正在聚集。", 
+          left: { text: "找掩体", effect: { energy: 5, supplies: -10 }, outcome: "你在洞穴里躲了半天，又饿又冷。" }, 
+          right: { text: "强行赶路", effect: { health: -15, energy: -10 }, outcome: "皮肤被灼烧得生疼。" } },
+
+        { type: "moral", text: "废墟下传来求救声，但那人皮肤已溃烂。", 
+          left: { text: "救他", effect: { energy: -15, sanity: 20, health: -10 }, outcome: "你救了他，但也接触了病菌。" }, 
+          right: { text: "补一枪", effect: { sanity: -15, supplies: 5 }, outcome: "这对他来说是一种解脱。" } },
+
+        { type: "trap", text: "空投箱就在前方，周围安静得诡异。", 
+          left: { text: "冲过去", effect: { health: -30 }, outcome: "地雷炸飞了你的腿，这是个陷阱！" }, 
+          right: { text: "观察", effect: { supplies: -5 }, outcome: "你发现了绊线，幸好没去。" } }
+    ];
+
+    // --- 结局文案 ---
+    const DEATHS = {
+        energy_low: { title: "力竭倒下", desc: "你的双腿像灌了铅，最终瘫软在路边。" },
+        energy_high: { title: "心脏骤停", desc: "极度亢奋让你的心脏像过载的引擎一样炸裂。" },
+        health_low: { title: "生命终结", desc: "坏疽爬满了全身，辐射深入骨髓。" },
+        health_high: { title: "基因变异", desc: "你变成了失去人性的怪物。" },
+        supplies_low: { title: "饥渴而死", desc: "水壶空了，你在绝望中脱水而死。" },
+        supplies_high: { title: "人为财死", desc: "贪婪的响声引来了强盗集团。" },
+        sanity_low: { title: "自我了断", desc: "废土的残酷击穿了你的心理防线。" },
+        sanity_high: { title: "盲目狂热", desc: "你微笑着走进了高辐射区拥抱“圣光”。" }
+    };
+
+    // --- 核心逻辑 ---
+
+    function showStartScreen() {
+        state.isPlaying = false;
+        document.getElementById('start-screen').classList.remove('hidden');
+        document.getElementById('game-over-screen').classList.add('hidden');
+        document.getElementById('victory-screen').classList.add('hidden');
+        showResultMessage("");
+        
+        state.stats = { energy: 50, health: 50, supplies: 50, sanity: 50 };
+        state.distance = 0;
+        state.inventory = [];
+        updateUI();
+        updateInventoryUI();
+        document.getElementById('dist-display').innerText = CONFIG.totalDistance;
+    }
+
+    function startGame() {
+        state.stats = { energy: 50, health: 50, supplies: 50, sanity: 50 };
+        state.distance = 0;
+        state.inventory = [];
+        state.isPlaying = true;
+        
+        document.getElementById('start-screen').classList.add('hidden');
+        updateUI();
+        updateInventoryUI();
+        document.getElementById('dist-display').innerText = CONFIG.totalDistance;
+        loadNextCard();
+    }
+
+    function loadNextCard() {
+        hidePreview();
+        
+        const randomIndex = Math.floor(Math.random() * CARDS.length);
+        const cardData = CARDS[randomIndex];
+        state.currentCard = cardData;
+
+        const cardWrapper = document.getElementById('card-wrapper');
+        cardWrapper.style.transition = 'none';
+        cardWrapper.style.transform = '';
+        cardWrapper.style.opacity = '1';
+        void cardWrapper.offsetWidth; 
+        
+        document.getElementById('card-desc').innerText = cardData.text;
+        document.getElementById('choice-left-label').innerText = cardData.left.text;
+        document.getElementById('choice-right-label').innerText = cardData.right.text;
+        document.getElementById('btn-left-text').innerText = cardData.left.text;
+        document.getElementById('btn-right-text').innerText = cardData.right.text;
+        
+        document.getElementById('choice-left-label').style.opacity = 0;
+        document.getElementById('choice-right-label').style.opacity = 0;
+
+        drawCardImage(cardData.type);
+    }
+
+    function triggerChoice(direction) {
+        if (!state.isPlaying) return;
+        const card = state.currentCard;
+        const choice = direction === 'left' ? card.left : card.right;
+        
+        const cardWrapper = document.getElementById('card-wrapper');
+        cardWrapper.style.transition = 'transform 0.4s ease-out, opacity 0.4s';
+        cardWrapper.classList.add(direction === 'left' ? 'slide-out-left' : 'slide-out-right');
+
+        // 应用效果 + 装备判定 + 装备消耗
+        applyEffects(choice.effect, card.type);
+
+        if (choice.reward) addItem(choice.reward);
+
+        // 结果反馈
+        let outcomeText = choice.outcome || generateGenericOutcome(choice.effect);
+        showResultMessage(outcomeText);
+
+        state.distance += CONFIG.kmPerCard;
+        document.getElementById('dist-display').innerText = Math.max(0, CONFIG.totalDistance - state.distance);
+
+        hidePreview();
+
+        setTimeout(() => {
+            if (checkGameOver()) return;
+            if (checkVictory()) return;
+            cardWrapper.classList.remove('slide-out-left', 'slide-out-right');
+            loadNextCard();
+        }, 500);
+    }
+
+    // --- 装备触发判定 ---
+    function shouldItemTrigger(itemId, cardType, effect) {
+        if (itemId === 'knife' && (cardType === 'scavenge' || cardType === 'enemy') && effect.supplies > 0) return true;
+        if (itemId === 'mask' && effect.health < 0) return true;
+        if (itemId === 'boots' && effect.energy < 0) return true;
+        if (itemId === 'radio' && effect.sanity < 0) return true;
+        if (itemId === 'medkit_guide' && effect.health > 0) return true;
+        return false;
+    }
+
+    // --- 结果文字反馈 ---
+    let resultTimeout;
+    function showResultMessage(text) {
+        const el = document.getElementById('result-message');
+        el.innerText = text || "";
+        
+        if (text) {
+            el.classList.add('visible');
+            if (resultTimeout) clearTimeout(resultTimeout);
+            resultTimeout = setTimeout(() => {
+                el.classList.remove('visible');
+            }, 2500);
+        } else {
+            el.classList.remove('visible');
+        }
+    }
+
+    function generateGenericOutcome(effect) {
+        let texts = [];
+        if (effect.health < 0) texts.push("你受伤了");
+        if (effect.supplies > 0) texts.push("获得物资");
+        if (effect.supplies < 0) texts.push("消耗了物资");
+        if (effect.sanity < 0) texts.push("精神受挫");
+        if (effect.energy < 0) texts.push("感到疲惫");
+        return texts.length > 0 ? texts.join("，") + "。" : "";
+    }
+
+    // --- 数值与装备应用 ---
+    function applyEffects(baseEffect, cardType) {
+        let effect = { ...baseEffect };
+
+        state.inventory.forEach((item, index) => {
+            if (shouldItemTrigger(item.id, cardType, effect)) {
+                let triggered = true;
+                
+                if (item.id === 'knife') effect.supplies += 5;
+                else if (item.id === 'mask') effect.health = Math.floor(effect.health / 2);
+                else if (item.id === 'boots') effect.energy = Math.min(0, effect.energy + 3);
+                else if (item.id === 'radio') {
+                    if (Math.random() < 0.5) triggered = false; 
+                    else effect.sanity = 2; 
+                }
+                else if (item.id === 'medkit_guide') effect.health += 5;
+
+                if (triggered) {
+                    item.uses--;
+                    triggerInventoryAnim(index); 
+                }
+            }
+        });
+
+        state.inventory = state.inventory.filter(item => item.uses > 0);
+        updateInventoryUI();
+
+        for (let key in effect) {
+            if (state.stats.hasOwnProperty(key)) {
+                state.stats[key] += effect[key];
+            }
+        }
+        updateUI();
+    }
+
+    function triggerInventoryAnim(index) {
+        const slots = document.querySelectorAll('.item-slot');
+        if (slots[index]) {
+            slots[index].classList.remove('preview-highlight'); 
+            slots[index].classList.add('active-triggered');
+            setTimeout(() => {
+                slots[index].classList.remove('active-triggered');
+            }, 600);
+        }
+    }
+
+    function addItem(itemId) {
+        if (state.inventory.length >= 4) return;
+        const dbItem = ITEMS_DB[itemId];
+        state.inventory.push({ id: itemId, uses: dbItem.maxUses });
+        updateInventoryUI();
+    }
+
+    // --- UI 更新 ---
+
+    function updateUI() {
+        updateBar('energy', state.stats.energy);
+        updateBar('health', state.stats.health);
+        updateBar('supplies', state.stats.supplies);
+        updateBar('sanity', state.stats.sanity);
+    }
+
+    function updateBar(type, value) {
+        const bar = document.querySelector(`#stat-${type} .progress-fill`);
+        let displayVal = Math.max(0, Math.min(100, value));
+        bar.style.width = displayVal + '%';
+        if (value <= 20 || value >= 80) bar.style.backgroundColor = 'var(--alert-red)';
+        else bar.style.backgroundColor = 'var(--main-green)';
+    }
+
+    function updateInventoryUI() {
+        const slots = document.querySelectorAll('.item-slot');
+        slots.forEach((slot, index) => {
+            slot.innerHTML = '';
+            slot.className = 'item-slot'; // reset
+            
+            if (index < state.inventory.length) {
+                const item = state.inventory[index];
+                const dbItem = ITEMS_DB[item.id];
+                
+                slot.classList.add('has-item');
+                slot.innerHTML = `
+                    <div class="item-icon">${dbItem.icon}</div>
+                    <div class="item-name">${dbItem.name}</div>
+                    <div class="item-count-badge">${item.uses}</div>
+                `;
+            }
+        });
+    }
+
+    function showItemDetail(index) {
+        const popup = document.getElementById('item-popup');
+        if (index >= state.inventory.length) {
+            popup.style.display = 'none';
+            return;
+        }
+        const item = state.inventory[index];
+        const dbItem = ITEMS_DB[item.id];
+        document.getElementById('popup-name').innerText = dbItem.name;
+        document.getElementById('popup-desc').innerText = dbItem.desc;
+        popup.style.display = 'block';
+    }
+
+    document.addEventListener('click', function(e) {
+        if (!document.getElementById('inventory-container').contains(e.target)) {
+            document.getElementById('item-popup').style.display = 'none';
+        }
+    });
+
+    // --- 预览与高亮 ---
+    function showPreview(direction) {
+        if (!state.isPlaying || !state.currentCard) return;
+        const effect = direction === 'left' ? state.currentCard.left.effect : state.currentCard.right.effect;
+        const cardType = state.currentCard.type;
+
+        // 顶部箭头
+        for (let key in state.stats) {
+            const indicator = document.querySelector(`#stat-${key} .stat-indicator`);
+            indicator.classList.remove('arrow-up', 'arrow-down', 'visible');
+            indicator.innerHTML = ''; 
+
+            if (effect[key]) {
+                indicator.classList.add('visible');
+                if (effect[key] > 0) {
+                    indicator.classList.add('arrow-up');
+                    indicator.innerHTML = '▲';
+                } else if (effect[key] < 0) {
+                    indicator.classList.add('arrow-down');
+                    indicator.innerHTML = '▼';
+                }
+            }
+        }
+
+        // 装备高亮 (预览)
+        const slots = document.querySelectorAll('.item-slot');
+        state.inventory.forEach((item, index) => {
+            if (slots[index]) {
+                if (shouldItemTrigger(item.id, cardType, effect)) {
+                    slots[index].classList.add('preview-highlight');
+                } else {
+                    slots[index].classList.remove('preview-highlight');
+                }
+            }
+        });
+    }
+
+    function hidePreview() {
+        document.querySelectorAll('.stat-indicator').forEach(el => {
+            el.classList.remove('visible');
+        });
+        document.querySelectorAll('.item-slot').forEach(el => {
+            el.classList.remove('preview-highlight');
+        });
+    }
+
+    // --- 绘图 ---
+    function drawCardImage(type) {
+        const canvas = document.getElementById('card-canvas');
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width;
+        const h = canvas.height;
+        ctx.clearRect(0, 0, w, h);
+        ctx.strokeStyle = '#33ff33';
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        
+        if (type === 'scavenge') {
+            ctx.strokeRect(60, 60, 100, 80); // 放大箱子
+            ctx.moveTo(60, 60); ctx.lineTo(110, 40); ctx.lineTo(160, 60);
+            ctx.moveTo(110, 40); ctx.lineTo(110, 120);
+        } else if (type === 'enemy') {
+            ctx.moveTo(60, 100); ctx.lineTo(110, 30); ctx.lineTo(160, 100);
+            ctx.moveTo(110, 60); ctx.lineTo(110, 120);
+            ctx.moveTo(80, 80); ctx.lineTo(140, 80);
+        } else if (type === 'moral') {
+            ctx.moveTo(110, 40); ctx.lineTo(110, 160);
+            ctx.moveTo(60, 80); ctx.lineTo(160, 80);
+            ctx.strokeRect(50, 80, 20, 20);
+            ctx.strokeRect(150, 80, 20, 20);
+        } else if (type === 'trap') {
+            ctx.moveTo(110, 30); ctx.lineTo(180, 160); ctx.lineTo(40, 160); ctx.closePath();
+            ctx.moveTo(110, 60); ctx.lineTo(110, 110);
+            ctx.moveTo(110, 130); ctx.arc(110, 130, 4, 0, Math.PI*2);
+        } else {
+            ctx.arc(110, 80, 25, Math.PI, 0);
+            ctx.lineTo(110, 140);
+            ctx.moveTo(110, 160); ctx.arc(110, 160, 4, 0, Math.PI*2);
+        }
+        ctx.stroke();
+    }
+
+    // --- 触摸逻辑 ---
+    const cardWrapper = document.getElementById('card-wrapper');
+    const leftLabel = document.getElementById('choice-left-label');
+    const rightLabel = document.getElementById('choice-right-label');
+    let startX = 0;
+    let isDragging = false;
+
+    cardWrapper.addEventListener('touchstart', e => {
+        if(!state.isPlaying) return;
+        startX = e.touches[0].clientX;
+        isDragging = true;
+        cardWrapper.style.transition = 'none';
+    });
+
+    cardWrapper.addEventListener('touchmove', e => {
+        if(!state.isPlaying || !isDragging) return;
+        const currentX = e.touches[0].clientX;
+        const diff = currentX - startX;
+        cardWrapper.style.transform = `translateX(${diff}px) rotate(${diff * 0.05}deg)`;
+        
+        if (diff > 0) {
+            rightLabel.style.opacity = Math.min(1, diff / 80);
+            leftLabel.style.opacity = 0;
+            showPreview('right');
+        } else {
+            leftLabel.style.opacity = Math.min(1, Math.abs(diff) / 80);
+            rightLabel.style.opacity = 0;
+            showPreview('left');
+        }
+    });
+
+    cardWrapper.addEventListener('touchend', e => {
+        if(!state.isPlaying || !isDragging) return;
+        isDragging = false;
+        const endX = e.changedTouches[0].clientX;
+        const diff = endX - startX;
+        
+        cardWrapper.style.transition = 'transform 0.3s ease-out';
+
+        if (diff > 80) triggerChoice('right');
+        else if (diff < -80) triggerChoice('left');
+        else {
+            cardWrapper.style.transform = '';
+            leftLabel.style.opacity = 0;
+            rightLabel.style.opacity = 0;
+            hidePreview();
+        }
+    });
+
+    // 死亡判定
+    function checkGameOver() {
+        let reason = null;
+        const s = state.stats;
+        if (s.energy <= 0) reason = 'energy_low';
+        else if (s.energy >= 100) reason = 'energy_high';
+        else if (s.health <= 0) reason = 'health_low';
+        else if (s.health >= 100) reason = 'health_high';
+        else if (s.supplies <= 0) reason = 'supplies_low';
+        else if (s.supplies >= 100) reason = 'supplies_high';
+        else if (s.sanity <= 0) reason = 'sanity_low';
+        else if (s.sanity >= 100) reason = 'sanity_high';
+
+        if (reason) {
+            state.isPlaying = false;
+            const info = DEATHS[reason];
+            document.getElementById('death-title').innerText = info.title;
+            document.getElementById('death-desc').innerText = info.desc;
+            document.getElementById('final-score').innerText = state.distance;
+            document.getElementById('game-over-screen').classList.remove('hidden');
+            return true;
+        }
+        return false;
+    }
+
+    function checkVictory() {
+        if (state.distance >= CONFIG.totalDistance) {
+            state.isPlaying = false;
+            document.getElementById('victory-screen').classList.remove('hidden');
+            return true;
+        }
+        return false;
+    }
+
+    // 初始化
+    drawCardImage('event');
+    document.getElementById('dist-display').innerText = CONFIG.totalDistance;
+
+</script>
+</body>
+</html>
