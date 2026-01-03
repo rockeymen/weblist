@@ -1,64 +1,1793 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>开发者作品</title>
-    <link rel="stylesheet" href="styles.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>末日避难所 - 单房间布置版</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a1a;
+            /* 背景改为深黑，突出房间 */
+            overflow: hidden;
+            font-family: 'Courier New', sans-serif;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        #gameCanvas {
+            display: block;
+            margin: 0 auto;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .top-bar {
+            position: absolute;
+            top: 10px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 15px;
+            pointer-events: auto;
+            box-sizing: border-box;
+        }
+
+        .top-right-bar {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            display: flex;
+            gap: 10px;
+            pointer-events: auto;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+        
+        /* 在PC端，建造控制按钮水平居中并与退出建造按钮在同一行高度 */
+        @media (min-width: 769px) {
+            #build-controls {
+                position: absolute;
+                top: 10px;
+                left: 50%;
+                transform: translateX(-50%);
+            }
+        }
+        
+        /* 在移动端，建造控制按钮比退出建造按钮低一行 */
+        @media (max-width: 768px) {
+            #build-controls {
+                width: 100%;
+                margin-top: 50px;
+                display: flex;
+                justify-content: center;
+            }
+        }
+
+        .zoom-controls {
+            position: absolute;
+            right: 15px;
+            top: 70px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: auto;
+        }
+
+        .zoom-btn {
+            width: 40px;
+            height: 40px;
+            background: rgba(52, 73, 94, 0.8);
+            border: 2px solid #fff;
+            color: #fff;
+            border-radius: 50%;
+            font-size: 20px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+        }
+
+        .zoom-btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn {
+            border: 2px solid #fff;
+            color: #fff;
+            background: #555;
+            padding: 8px 15px;
+            border-radius: 6px;
+            font-weight: bold;
+            box-shadow: 0 4px 0 #333;
+            cursor: pointer;
+            text-shadow: 1px 1px 0 #000;
+        }
+
+        .btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #333;
+        }
+
+        .btn.disabled {
+            border-color: #777;
+            color: #777;
+            background: #333;
+            cursor: not-allowed;
+        }
+
+        #reset-btn {
+            background: #c0392b;
+            border-color: #e74c3c;
+        }
+
+        #build-mode-btn {
+            background: #3498db;
+            border-color: #2980b9;
+        }
+
+        #build-mode-btn.active {
+            background: #f1c40f;
+            border-color: #f39c12;
+            color: #333;
+        }
+
+        #delete-room-btn {
+            background: #e67e22;
+            border-color: #d35400;
+            display: none;
+        }
+
+        #delete-item-btn {
+            background: #e67e22;
+            border-color: #d35400;
+            display: none;
+        }
+
+        #main-menu {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 70px;
+            background: #34495e;
+            border-top: 4px solid #7f8c8d;
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            pointer-events: auto;
+            z-index: 20;
+            overflow-x: auto;
+            /* 添加横向滚动 */
+            overflow-y: hidden;
+            /* 隐藏纵向滚动 */
+            -webkit-overflow-scrolling: touch;
+            /* iOS 平滑滚动 */
+            scrollbar-width: none;
+            /* 隐藏滚动条 - Firefox */
+            /* 确保内容宽度超出容器宽度 */
+            width: 100vw;
+        }
+
+        /* 隐藏滚动条 - Chrome, Safari, Edge */
+        #main-menu::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* 添加一个包装器来确保内容宽度 */
+        #main-menu-wrapper {
+            display: flex;
+            width: max-content;
+            /* 内容宽度 */
+            height: 100%;
+        }
+
+        .cat-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #ecf0f1;
+            font-size: 12px;
+            opacity: 0.7;
+            transition: 0.2s;
+            padding: 10px 4px;
+            min-width: 70px;
+            /* 减小最小宽度，缩窄间距 */
+            flex-shrink: 0;
+            /* 防止按钮缩小 */
+        }
+
+        .cat-btn.active {
+            opacity: 1;
+            transform: scale(1.1);
+            color: #f1c40f;
+        }
+
+        .cat-icon {
+            font-size: 24px;
+            margin-bottom: 2px;
+        }
+
+        #sub-menu {
+            position: absolute;
+            bottom: 74px;
+            left: 0;
+            right: 0;
+            height: 140px;
+            background: rgba(30, 30, 30, 0.95);
+            display: none;
+            align-items: flex-start;
+            justify-content: flex-start;
+            overflow-x: auto;
+            overflow-y: hidden;
+            flex-direction: row;
+            padding: 10px;
+            gap: 20px;
+            pointer-events: auto;
+            z-index: 10;
+            transition: transform 0.2s ease;
+            transform: translateY(100%);
+        }
+
+        #sub-menu.visible {
+            display: flex;
+            animation: slideUp 0.2s ease-out;
+            transform: translateY(0);
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1
+            }
+        }
+
+        .items-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 10px;
+            align-items: flex-start;
+            align-content: flex-start;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+
+        .item-image-btn {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            background: #34495e;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .item-image-btn:hover {
+            background: #3498db;
+            transform: scale(1.05);
+        }
+
+        .item-image-btn img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            image-rendering: pixelated;
+        }
+
+        #toast {
+            position: absolute;
+            top: 15%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            opacity: 0;
+            transition: opacity 0.5s;
+            pointer-events: none;
+        }
+
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #2c3e50;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .loading-bar {
+            width: 300px;
+            height: 20px;
+            background: #34495e;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .loading-progress {
+            height: 100%;
+            background: #27ae60;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        /* 自定义确认弹窗 */
+        #confirm-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            backdrop-filter: blur(3px);
+        }
+
+        .modal-content {
+            background: #2c3e50;
+            border: 2px solid #fff;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            color: #fff;
+            max-width: 85%;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .modal-btn {
+            padding: 10px 25px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .btn-confirm {
+            background: #e67e22;
+            color: white;
+        }
+
+        .btn-cancel {
+            background: #95a5a6;
+            color: white;
+        }
+
+        /* 切换开关样式 */
+        .toggle-switch {
+            display: flex;
+            background: #34495e;
+            border-radius: 20px;
+            padding: 2px;
+            border: 2px solid #fff;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .toggle-option {
+            padding: 6px 16px;
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            color: #bdc3c7;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-option.active {
+            background: #f1c40f;
+            color: #2c3e50;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle-option:hover:not(.active) {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* 移动设备样式 */
+        @media (max-width: 768px) {
+            .zoom-controls {
+                display: none;
+            }
+        }
+    </style>
 </head>
+
 <body>
-    <header class="header">
-        <div class="container">
-            <h1 class="logo">DevShowcase</h1>
-            <p class="header-subtitle">汇聚全球独立开发者的创意之作，探索无限可能</p>
+    <div id="loading-screen">
+        <div>
+            <h3>正在加载资源...</h3>
+            <div class="loading-bar">
+                <div class="loading-progress" id="loading-progress"></div>
+            </div>
+            <div id="loading-text">0/0</div>
         </div>
-    </header>
+    </div>
 
-    <main class="main">
-        <!-- 导航栏移到这里 -->
-        <div class="nav-container sticky-nav">
-            <nav class="nav">
-                <a href="#" class="nav-link active" data-filter="all">全部</a>
-                <a href="#" class="nav-link" data-filter="web">网站应用</a>
-                <a href="#" class="nav-link" data-filter="mobile">移动应用</a>
-                <a href="#" class="nav-link" data-filter="tool">工具</a>
-                <a href="#" class="nav-link" data-filter="game">游戏</a>
-                <a href="#leaderboard" class="nav-link">排行榜</a>
-            </nav>
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- 自定义确认弹窗 -->
+    <div id="confirm-modal">
+        <div class="modal-content">
+            <p id="modal-msg">确定执行此操作吗？</p>
+            <div class="modal-buttons">
+                <button id="modal-cancel" class="modal-btn btn-cancel">取消</button>
+                <button id="modal-confirm" class="modal-btn btn-confirm">确定</button>
+            </div>
+        </div>
+    </div>
+
+
+    <style>
+        #passage-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2100;
+        }
+
+        #passage-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2px;
+            background: #000;
+            width: 240px;
+            height: 160px;
+            margin: 20px auto;
+            border: 2px solid #555;
+        }
+
+        .p-cell {
+            background: #222;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .p-cell img {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+    </style>
+
+    <div id="ui-layer">
+        <div class="top-bar">
+            <button id="reset-btn" class="btn" onclick="event.stopPropagation(); resetGame()">♻ 重建</button>
+        </div>
+        <div class="top-right-bar">
+            <button id="delete-item-btn" class="btn" onclick="event.stopPropagation(); deleteSelectedItem()">🗑️
+                删除</button>
+            <button id="delete-room-btn" class="btn" onclick="event.stopPropagation(); deleteSelectedRoom()">🗑️
+                删除</button>
+            <button id="build-mode-btn" class="btn" onclick="event.stopPropagation(); toggleBuildMode()">🧱
+                建造模式</button>
+        </div>
+        
+        <!-- 将build-controls移出top-right-bar，实现页面居中 -->
+        <div id="build-controls" style="display:none; pointer-events: auto;">
+            <div class="toggle-switch">
+                <div id="opt-room" class="toggle-option active"
+                    onclick="event.stopPropagation(); setBuildType('room')">建房间</div>
+                <div id="opt-passage" class="toggle-option"
+                    onclick="event.stopPropagation(); setBuildType('passage')">建通道</div>
+            </div>
         </div>
 
-        <div class="content-wrapper">
-            <div class="container">
-                <div class="content-grid">
-                    <!-- 左侧：项目展示 -->
-                    <div class="left-column">
-                        <section class="projects-section">
-                            <div class="projects-grid" id="projectsGrid">
-                                <!-- 项目将通过JavaScript动态生成 -->
-                            </div>
-                        </section>
-                    </div>
+        <div class="zoom-controls">
+            <button class="zoom-btn" onclick="zoomView(1.2)">+</button>
+            <button class="zoom-btn" onclick="zoomView(0.8)">-</button>
+        </div>
+        <div id="toast">提示</div>
 
-                    <!-- 右侧：排行榜 -->
-                    <div class="right-column">
-                        <section class="leaderboard-section" id="leaderboard">
-                            <h2 class="section-title">热门排行榜</h2>
-                            <div class="leaderboard" id="leaderboardContent">
-                                <!-- 排行榜将通过JavaScript动态生成 -->
-                            </div>
-                        </section>
-                    </div>
+        <div id="sub-menu"></div>
+
+        <div id="main-menu">
+            <div id="main-menu-wrapper">
+                <div class="cat-btn" onclick="toggleCat('beds')">
+                    <div class="cat-icon">🛏️</div>床
+                </div>
+                <div class="cat-btn" onclick="toggleCat('seating')">
+                    <div class="cat-icon">🪑</div>椅子/沙发
+                </div>
+                <div class="cat-btn" onclick="toggleCat('tables')">
+                    <div class="cat-icon">🪑</div>桌子
+                </div>
+                <div class="cat-btn" onclick="toggleCat('appliances')">
+                    <div class="cat-icon">📺</div>家电
+                </div>
+                <div class="cat-btn" onclick="toggleCat('lighting')">
+                    <div class="cat-icon">💡</div>灯
+                </div>
+                <div class="cat-btn" onclick="toggleCat('decor')">
+                    <div class="cat-icon">🖼️</div>装饰
+                </div>
+                <div class="cat-btn" onclick="toggleCat('bathroom')">
+                    <div class="cat-icon">🚿</div>卫浴
+                </div>
+                <div class="cat-btn" onclick="toggleCat('chests')">
+                    <div class="cat-icon">📦</div>箱子
+                </div>
+                <div class="cat-btn" onclick="toggleCat('supplies')">
+                    <div class="cat-icon">🧴</div>用品
                 </div>
             </div>
         </div>
-    </main>
+    </div>
 
-    <footer class="footer">
-        <div class="container">
-            <p>&copy; 2024 DevShowcase. 展示独立开发者的创意作品</p>
-        </div>
-    </footer>
+    <script>
+        // --- 图片资源管理器 ---
+        class ImageManager {
+            constructor() {
+                this.images = {};
+                this.loadedCount = 0;
+                this.totalCount = 0;
+                this.onProgress = null;
+                this.onComplete = null;
+            }
 
-    <script src="script.js"></script>
+            loadImages(imageMap) {
+                this.totalCount = Object.keys(imageMap).length;
+                this.loadedCount = 0;
+
+                for (let [key, path] of Object.entries(imageMap)) {
+                    const img = new Image();
+                    img.onload = () => {
+                        this.loadedCount++;
+                        this.images[key] = img;
+                        this.updateProgress();
+                        if (this.loadedCount === this.totalCount && this.onComplete) {
+                            this.onComplete();
+                        }
+                    };
+                    img.onerror = () => {
+                        console.error(`Failed to load image: ${path}`);
+                        this.loadedCount++;
+                        this.updateProgress();
+                    };
+                    img.src = path;
+                }
+            }
+
+            updateProgress() {
+                if (this.onProgress) this.onProgress(this.loadedCount, this.totalCount);
+            }
+
+            getImage(key) { return this.images[key] || null; }
+        }
+
+        const imageManager = new ImageManager();
+
+        // --- 动态目录生成 ---
+        function generateDynamicCatalog() {
+            const categoryDirs = {
+                'beds': '床', 'seating': '椅子/沙发', 'tables': '桌子',
+                'appliances': '家电', 'lighting': '灯', 'decor': '装饰',
+                'bathroom': '卫浴', 'chests': '箱子', 'supplies': '用品'
+            };
+
+            const newCatalog = {};
+            const newImageMap = {};
+            const newItemDefs = {};
+
+            const availableImages = {
+                'beds': ['bed_1.png', 'bed_2.png', 'bed_3.png', 'bed_4.png', 'bed_5.png', 'bed_6.png', 'bed_7.png', 'bed_8.png', 'bed_9.png', 'bed_14.png', 'bed_15.png', 'bed_16.png'],
+                'chairs': ['chair_1.png', 'chair_2.png', 'chair_4.png', 'chair_6.png', 'chair_8.png', 'chair_9.png', 'chair_10.png', 'chair_12.png', 'chair_13.png', 'chair_14.png', 'chair_15.png', 'chair_16.png', 'chair_17.png', 'chair_18.png', 'chair_27.png', 'chair_28.png', 'chair_29.png'],
+                'tables': ['table_2.png', 'table_3.png', 'table_4.png', 'table_5.png', 'table_8.png', 'table_9.png', 'table_10.png', 'table_11.png', 'table_12.png', 'table_13.png', 'table_15.png', 'table_17.png', 'table_18.png', 'table_20.png', 'table_21.png', 'table_27.png', 'table_28.png', 'table_29.png'],
+                'appliances': ['appliance_1_f.png', 'appliance_2_f.png', 'appliance_3_f.png', 'appliance_4.png', 'appliance_5.png', 'appliance_6_f.png', 'appliance_7_f.png', 'appliance_8_f.png', 'appliance_9.png', 'appliance_10_f.png', 'appliance_11_f.png', 'appliance_12_f.png', 'appliance_13_f.png', 'appliance_14_f.png', 'appliance_15.png', 'appliance_16.png', 'appliance_17.png', 'appliance_18.png', 'appliance_19.png', 'appliance_20.png', 'appliance_25_f.png', 'appliance_26.png'],
+                'lights': ['light_1_f.png', 'light_2.png', 'light_3_f.png', 'light_5_f.png', 'light_6.png', 'light_7_f.png', 'light_8_f.png', 'light_9_f.png', 'light_10_f.png', 'light_12.png', 'light_13_f.png', 'light_14_f.png', 'light_15_f.png', 'light_16_f.png', 'light_17_f.png', 'light_19_f.png', 'light_20_f.png', 'light_21_f.png', 'light_30.png', 'light_31_f.png'],
+                'decorations': ['deco_1_f.png', 'deco_2_f.png', 'deco_3_f.png', 'deco_5_f.png', 'deco_7_f.png', 'deco_11_f.png', 'deco_12_f.png', 'deco_13_f.png', 'deco_14_f.png', 'deco_15_f.png', 'deco_16_f.png', 'deco_17_f.png', 'deco_18_f.png', 'deco_19_f.png', 'deco_20_f.png', 'deco_21_f.png', 'deco_22_f.png', 'deco_23.png', 'deco_24_f.png', 'deco_25_f.png', 'deco_26_f.png', 'deco_27_f.png', 'deco_34_f.png', 'deco_35_f.png'],
+                'bathroom': ['bathroom_1.png', 'bathroom_2.png', 'bathroom_3.png', 'bathroom_4.png', 'bathroom_5.png'],
+                'chests': ['chest_1.png', 'chest_2.png', 'chest_3.png', 'chest_4.png'],
+                'supplies': ['supply_1_f.png', 'supply_2_f.png', 'supply_3_f.png', 'supply_4_f.png', 'supply_5_f.png', 'supply_6.png']
+            };
+
+            for (let [categoryKey, categoryName] of Object.entries(categoryDirs)) {
+                let imageDir = categoryKey;
+                if (categoryKey === 'seating') imageDir = 'chairs';
+                if (categoryKey === 'decor') imageDir = 'decorations';
+                if (categoryKey === 'lighting') imageDir = 'lights';
+
+                const images = availableImages[imageDir] || [];
+                newCatalog[categoryKey] = {};
+
+                images.forEach((imageFile, index) => {
+                    const itemId = `${categoryKey}_${index + 1}`;
+                    const itemName = imageFile.replace('.png', '').replace(/_/g, ' ');
+                    const imagePath = `img/${imageDir}/${imageFile}`;
+                    const subCategory = 'all'; // 简化，统一放到一起
+
+                    if (!newCatalog[categoryKey][subCategory]) newCatalog[categoryKey][subCategory] = [];
+
+                    // 检查是否是_f结尾的文件（可以放置在其他家具上方的装饰品）
+                    const isForegroundItem = imageFile.endsWith('_f.png');
+
+                    // 定义物品属性：这里不设定具体的宽高，因为会使用图片原始比例
+                    let itemProps = {
+                        id: itemId,
+                        name: itemName,
+                        imageKey: itemId,
+                        type: isForegroundItem ? 'foreground' : ((categoryKey === 'lighting' || categoryKey === 'decor') ? 'mixed' : 'floor') // 前景物品类型
+                    };
+
+                    // 给不同分类预设一些深度/碰撞体积基准，但主要依赖图片
+                    switch (categoryKey) {
+                        case 'beds': itemProps.depthFactor = 0.8; break; // 床比较深
+                        default: itemProps.depthFactor = 0.5; break;
+                    }
+
+                    // 如果是前景物品，设置特殊属性
+                    if (isForegroundItem) {
+                        itemProps.isForeground = true;
+                        itemProps.depthFactor = 0.1; // 前景物品深度较小
+                    }
+
+                    newCatalog[categoryKey][subCategory].push(itemProps);
+                    newImageMap[itemId] = imagePath;
+                    newItemDefs[itemId] = itemProps;
+                });
+            }
+            return { catalog: newCatalog, imageMap: newImageMap, itemDefs: newItemDefs };
+        }
+
+        const { catalog, imageMap, itemDefs } = generateDynamicCatalog();
+
+        // --- 游戏引擎 ---        
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+
+        // 游戏状态
+        let gameData = {
+            items: [],
+            rooms: { "0,0": true } // 使用网格坐标作为 Key
+        };
+
+        let roomRect = { w: 0, h: 0 }; // 房间的逻辑大小（等于背景图原始大小）
+
+        // 视图状态 (物理像素到逻辑坐标的映射)
+        let view = {
+            x: 0, // 全局偏移 X
+            y: 0, // 全局偏移 Y
+            zoom: 1.0, // 用户缩放比
+            baseScale: 1.0, // 初始填满屏幕的缩放比
+        };
+
+        let preBuildView = null; // Store view state before entering build mode
+        let hasTouched = false; // 标记是否发生了触摸移动，用于区分点击和拖动/缩放
+        let isTouchEvent = false; // 标记当前事件是否为触摸事件
+        let touchStartPos = null; // 记录触摸开始的位置
+        let mouseStartPos = null; // 记录鼠标开始的位置
+        let startPanPos = null; // 记录开始平移的位置
+        const DRAG_THRESHOLD = 5; // 拖动阈值，单位：像素
+
+        let isBuildMode = false;
+        let buildType = 'room'; // 'room' | 'passage'
+        let selectedRoomCoord = null; // 建造模式下选中的房间坐标 "x,y"
+        let isEditingPassage = false; // 标记是否正在编辑通道
+
+        // 交互状态
+        let selectedItem = null;
+        let isDragging = false;
+        let isPanning = false; // 拖拽背景平移视图
+        let dragOffset = { x: 0, y: 0 };
+        let lastPanPos = { x: 0, y: 0 };
+
+        // 移动端缩放
+        let lastTouchDistance = 0;
+
+        // --- 初始化流程 ---
+        function updateLoadingProgress(loaded, total) {
+            const progress = (loaded / total) * 100;
+            document.getElementById('loading-progress').style.width = progress + '%';
+            document.getElementById('loading-text').textContent = `${loaded}/${total}`;
+            if (loaded === total) {
+                setTimeout(() => {
+                    document.getElementById('loading-screen').style.display = 'none';
+                    loadBackgroundAndStart();
+                }, 500);
+            }
+        }
+
+        imageManager.onProgress = updateLoadingProgress;
+        imageManager.onComplete = () => console.log('Furniture loaded!');
+        imageManager.loadImages(imageMap);
+
+        let passageHImg = null;
+        let passageVImg = null;
+        let roomPassageImg = null;
+
+        function loadBackgroundAndStart() {
+            let loaded = 0;
+            const total = 5; // Expected 5 images
+            const onLoaded = () => {
+                loaded++;
+                if (loaded === total) {
+                    // Start only after all critical resources are loaded
+                    roomRect.w = roomImg.naturalWidth;
+                    roomRect.h = roomImg.naturalHeight;
+                    init();
+                }
+            };
+            const onError = (src) => {
+                console.error("Critical asset missing: " + src);
+                alert("无法加载核心资源: " + src);
+            };
+
+            const ts = Date.now() + 1; // Force new timestamp
+            roomImg = new Image(); roomImg.onload = onLoaded; roomImg.onerror = () => onError(roomImg.src);
+            roomImg.src = 'img/background/room.PNG?v=' + ts;
+
+            roomBlankImg = new Image(); roomBlankImg.onload = onLoaded; roomBlankImg.onerror = () => onError(roomBlankImg.src);
+            roomBlankImg.src = 'img/background/room_blank.PNG?v=' + ts;
+
+            passageHImg = new Image(); passageHImg.onload = onLoaded; passageHImg.onerror = () => onError('img/background/passage_v.png');
+            passageHImg.src = 'img/background/passage_h.png?v=' + ts;
+
+            passageVImg = new Image(); passageVImg.onload = onLoaded; passageVImg.onerror = () => onError('img/background/passage_v.png');
+            passageVImg.src = 'img/background/passage_v.png?v=' + ts;
+
+            roomPassageImg = new Image(); roomPassageImg.onload = onLoaded; roomPassageImg.onerror = () => onError('img/background/room_passage.png');
+            roomPassageImg.src = 'img/background/room_passage.png?v=' + ts;
+        }
+
+        function init() {
+            load();
+            resize();
+
+            // 初始位置：将第一个房间居中
+            view.x = (canvas.width / 2) - (roomRect.w * view.baseScale / 2);
+            view.y = (canvas.height / 2) - (roomRect.h * view.baseScale / 2);
+
+            loop();
+        }
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            // 计算初始缩放比例：固定为0.2倍
+            if (roomRect.w > 0) {
+                view.baseScale = 0.2;
+            }
+        }
+
+        function spawnItem(id) {
+            const def = itemDefs[id];
+            // 放置在页面中心
+            const finalScale = view.baseScale * view.zoom;
+            // 计算屏幕中心对应的逻辑坐标
+            const centerX = (canvas.width / 2 - view.x) / finalScale;
+            const centerY = (canvas.height / 2 - view.y) / finalScale;
+            
+            const newItem = {
+                id: Date.now(),
+                tid: id,
+                x: centerX, // 逻辑坐标 X
+                y: centerY, // 逻辑坐标 Y
+            };
+
+            // 尝试获取图片尺寸来修正初始位置（居中）
+            const img = imageManager.getImage(def.imageKey);
+            if (img) {
+                newItem.x -= img.naturalWidth / 2;
+                newItem.y -= img.naturalHeight / 2;
+            }
+
+            gameData.items.push(newItem);
+            selectedItem = newItem;
+            isDragging = false; // 生成后不立即拖拽，避免飞走
+            save();
+            showToast("已添加: " + def.name);
+            closeMenu();
+        }
+
+        function loop() {
+            // 清屏
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (!roomImg || !roomBlankImg) return;
+
+            ctx.save();
+            // 应用视图变换：平移 -> 缩放
+            ctx.translate(view.x, view.y);
+            const finalScale = view.baseScale * view.zoom;
+            ctx.scale(finalScale, finalScale);
+
+            // 1. 绘制所有房间背景
+            for (let coord in gameData.rooms) {
+                const [rx, ry] = coord.split(',').map(Number);
+
+                // 检查上方是否有房间
+                const aboveKey = `${rx},${ry - 1}`;
+                const hasAbove = !!gameData.rooms[aboveKey];
+
+                const roomData = gameData.rooms[coord];
+                const isPassage = roomData && roomData.type === 'passage';
+
+                if (!isPassage) {
+                    // 普通房间
+                    // 逻辑：如果上方对应位置有普通房间，用 room_blank (无顶); 否则用 room (有顶)
+                    // 如果上方是通道，也视为"有顶"，但会额外绘制连接
+                    const aboveRoom = gameData.rooms[aboveKey];
+                    const isAboveRegularRoom = aboveRoom && (!aboveRoom.type || aboveRoom.type === 'room');
+
+                    const img = isAboveRegularRoom ? roomBlankImg : roomImg;
+                    ctx.drawImage(img, rx * roomRect.w, ry * roomRect.h);
+
+                    // 如果上方是通道，绘制连接
+                    if (aboveRoom && aboveRoom.type === 'passage' && aboveRoom.layout) {
+                        const cellW = roomRect.w / 3;
+                        const botRow = aboveRoom.layout[2]; // 通道底行
+                        for (let c = 0; c < 3; c++) {
+                            if (botRow[c] === 1) {
+                                // Don't scale, use original size, aligned top
+                                ctx.drawImage(roomPassageImg, rx * roomRect.w + c * cellW, ry * roomRect.h);
+                            }
+                        }
+                    }
+                } else {
+                    // 通道房间 - 绘制 3x3
+                    const cellW = roomRect.w / 3;
+                    const cellH = roomRect.h / 3;
+                    const layout = roomData.layout || [[0, 0, 0], [0, 0, 0], [0, 0, 0]]; // 3x3 array
+
+                    for (let r = 0; r < 3; r++) {
+                        for (let c = 0; c < 3; c++) {
+                            if (layout[r][c] === 1) {
+                                let isAboveFilled = false;
+                                if (r > 0) {
+                                    if (layout[r - 1][c] === 1) isAboveFilled = true;
+                                } else {
+                                    // r=0, 检查上方邻居
+                                    // 逻辑：如果上方对应位置有东西（无论是通道还是普通房间），就认为是 vertically connected
+                                    const aboveRoom = gameData.rooms[aboveKey];
+                                    if (aboveRoom) {
+                                        if (aboveRoom.type === 'passage') {
+                                            // 对方是通道，检查对方底边
+                                            if (aboveRoom.layout && aboveRoom.layout[2][c] === 1) isAboveFilled = true;
+                                        } else {
+                                            // 对方是普通房间，视为填满
+                                            isAboveFilled = true;
+                                        }
+                                    }
+                                }
+
+                                const pImg = isAboveFilled ? passageVImg : passageHImg;
+                                ctx.drawImage(pImg,
+                                    rx * roomRect.w + c * cellW,
+                                    ry * roomRect.h + r * cellH,
+                                    cellW, cellH
+                                );
+                            }
+                        }
+                    }
+                }
+
+                // 如果是选中的房间，绘制高亮框
+                if (isBuildMode && selectedRoomCoord === coord) {
+                    ctx.save();
+                    ctx.strokeStyle = '#f1c40f';
+                    ctx.lineWidth = 2 / finalScale;
+                    ctx.strokeRect(rx * roomRect.w + 5, ry * roomRect.h + 5, roomRect.w - 10, roomRect.h - 10);
+                    ctx.restore();
+                }
+            }
+
+            // 2. 如果是建造模式，绘制 "+" 号
+            if (isBuildMode) {
+                drawBuildIcons();
+            }
+
+            // 3. 绘制物品
+            const foregroundItems = [];
+            const regularItems = [];
+
+            gameData.items.forEach(item => {
+                const def = itemDefs[item.tid];
+                if (def.isForeground) {
+                    foregroundItems.push(item);
+                } else {
+                    regularItems.push(item);
+                }
+            });
+
+            // 排序逻辑 (全局 Y 坐标)
+            regularItems.sort((a, b) => {
+                const imgA = imageManager.getImage(itemDefs[a.tid].imageKey);
+                const imgB = imageManager.getImage(itemDefs[b.tid].imageKey);
+                const hA = imgA ? imgA.naturalHeight : 0;
+                const hB = imgB ? imgB.naturalHeight : 0;
+                return (a.y + hA) - (b.y + hB);
+            });
+
+            const sortedItems = [...regularItems, ...foregroundItems];
+
+            sortedItems.forEach(item => {
+                const def = itemDefs[item.tid];
+                const img = imageManager.getImage(def.imageKey);
+
+                if (img) {
+                    const w = img.naturalWidth;
+                    const h = img.naturalHeight;
+
+                    ctx.drawImage(img, item.x, item.y);
+
+                    // 绘制选中框（黄色实线）
+                    if (selectedItem === item) {
+                        ctx.strokeStyle = '#f1c40f';
+                        ctx.lineWidth = 2 / finalScale;
+                        ctx.strokeRect(item.x, item.y, w, h);
+                    }
+                }
+            });
+
+            ctx.restore();
+            requestAnimationFrame(loop);
+        }
+
+        function drawBuildIcons() {
+            const potentialRooms = new Set();
+            const neighbors = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+            for (let coord in gameData.rooms) {
+                const [rx, ry] = coord.split(',').map(Number);
+                neighbors.forEach(([dx, dy]) => {
+                    const nx = rx + dx, ny = ry + dy;
+                    const nKey = `${nx},${ny}`;
+                    if (!gameData.rooms[nKey]) {
+                        potentialRooms.add(nKey);
+                    }
+                });
+            }
+
+            potentialRooms.forEach(key => {
+                const [rx, ry] = key.split(',').map(Number);
+                const bx = rx * roomRect.w;
+                const by = ry * roomRect.h;
+
+                // 绘制半透明占位矩形
+                ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
+                ctx.fillRect(bx + 10, by + 10, roomRect.w - 20, roomRect.h - 20);
+
+                // 绘制 "+"
+                if (buildType === 'passage') {
+                    ctx.fillStyle = "#3498db"; // Blue
+                } else {
+                    ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+                }
+                ctx.font = `${roomRect.h * 0.3}px Arial`;
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText("+", bx + roomRect.w / 2, by + roomRect.h / 2);
+            });
+        }
+
+        // --- 输入事件 ---
+
+        // 获取相对于逻辑坐标系（物理世界）的鼠标位置
+        function getLogicalPos(e) {
+            const r = canvas.getBoundingClientRect();
+            const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches && e.touches.length > 0 ? e.touches[0].clientY : e.clientY;
+
+            // 屏幕坐标 -> 画布坐标 -> 减去偏移 -> 除以缩放 -> 逻辑坐标
+            const finalScale = view.baseScale * view.zoom;
+            const x = (clientX - r.left - view.x) / finalScale;
+            const y = (clientY - r.top - view.y) / finalScale;
+            return { x, y };
+        }
+
+        function handleStart(e) {
+            // 标记当前事件类型
+            isTouchEvent = e.touches && e.touches.length > 0;
+            
+            // 只有触摸事件才阻止默认行为，避免影响PC鼠标事件
+            if (isTouchEvent) {
+                e.preventDefault(); // 阻止浏览器默认行为，防止触摸事件触发鼠标事件
+            }
+            
+            if (e.target !== canvas) return;
+            hasTouched = false; // 重置触摸移动标志
+            
+            // 记录初始位置
+            const p = getLogicalPos(e);
+            if (isTouchEvent) {
+                touchStartPos = p;
+            } else {
+                mouseStartPos = p;
+            }
+            
+            // 记录屏幕坐标用于判断拖拽距离
+            const clientX = isTouchEvent ? e.touches[0].clientX : e.clientX;
+            const clientY = isTouchEvent ? e.touches[0].clientY : e.clientY;
+            lastPanPos = { x: clientX, y: clientY };
+
+            // 1. 检测物品点击，准备拖动
+            for (let i = gameData.items.length - 1; i >= 0; i--) {
+                const item = gameData.items[i];
+                const def = itemDefs[item.tid];
+                const img = imageManager.getImage(def.imageKey);
+
+                if (img) {
+                    const w = img.naturalWidth;
+                    const h = img.naturalHeight;
+
+                    if (p.x >= item.x && p.x <= item.x + w &&
+                        p.y >= item.y && p.y <= item.y + h) {
+
+                        selectedItem = item;
+                        dragOffset.x = p.x - item.x;
+                        dragOffset.y = p.y - item.y;
+                        isDragging = true; // 设置拖拽状态
+                        return;
+                    }
+                }
+            }
+
+            // 2. 点击空白：准备平移
+            selectedItem = null;
+            if (!isBuildMode) {
+                document.getElementById('delete-item-btn').style.display = 'none';
+            }
+            
+            // 处理双指缩放初始距离
+            if (isTouchEvent && e.touches.length === 2) {
+                lastTouchDistance = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+            }
+        }
+
+        function handleMove(e) {
+            // 只有触摸事件才阻止默认行为，避免影响PC鼠标事件
+            if (isTouchEvent) {
+                e.preventDefault();
+                hasTouched = true;
+            }
+            
+            const p = getLogicalPos(e);
+
+            // 1. 拖拽物品
+            if (selectedItem && (isDragging || isTouchEvent)) {
+                isDragging = true;
+                selectedItem.x = p.x - dragOffset.x;
+                selectedItem.y = p.y - dragOffset.y;
+                return;
+            }
+
+            // 2. 双指缩放
+            if (isTouchEvent && e.touches && e.touches.length === 2) {
+                const dist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                if (lastTouchDistance > 0) {
+                    const ratio = dist / lastTouchDistance;
+                    zoomView(ratio, true); // true 表示是相对比例
+                }
+                lastTouchDistance = dist;
+                return;
+            }
+
+            // 3. 视图平移
+            const clientX = isTouchEvent && e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
+            const clientY = isTouchEvent && e.touches && e.touches.length > 0 ? e.touches[0].clientY : e.clientY;
+            
+            // 计算移动距离
+            let distance = 0;
+            let startX = 0;
+            let startY = 0;
+            
+            if (isTouchEvent && touchStartPos) {
+                startX = touchStartPos.x;
+                startY = touchStartPos.y;
+                distance = Math.sqrt((p.x - startX) * (p.x - startX) + (p.y - startY) * (p.y - startY));
+            } else if (!isTouchEvent && mouseStartPos) {
+                startX = mouseStartPos.x;
+                startY = mouseStartPos.y;
+                distance = Math.sqrt((e.clientX - startX) * (e.clientX - startX) + (e.clientY - startY) * (e.clientY - startY));
+            }
+            
+            if (isPanning || distance > DRAG_THRESHOLD) {
+                // 只有当已经在平移状态或移动距离超过阈值时才进行平移
+                if (!isPanning) {
+                    isPanning = true;
+                }
+                
+                view.x += clientX - lastPanPos.x;
+                view.y += clientY - lastPanPos.y;
+                lastPanPos = { x: clientX, y: clientY };
+            }
+        }
+
+        function handleEnd(e) {
+            // 只有触摸事件才阻止默认行为，避免影响PC鼠标事件
+            if (isTouchEvent) {
+                e.preventDefault(); // 阻止浏览器默认行为，防止触摸事件触发鼠标事件
+            }
+            
+            if (isDragging) save();
+            
+            // 处理触摸事件点击
+            if (isTouchEvent && !hasTouched && touchStartPos) {
+                // 1. 如果是建造模式，优先检测交互
+                if (isBuildMode) {
+                    if (checkBuildClick(touchStartPos)) {
+                        isDragging = false;
+                        isPanning = false;
+                        lastTouchDistance = 0;
+                        touchStartPos = null;
+                        mouseStartPos = null;
+                        isTouchEvent = false;
+                        return;
+                    }
+
+                    // 检测是否点击了现有房间进行选中或编辑
+                    const rx = Math.floor(touchStartPos.x / roomRect.w);
+                    const ry = Math.floor(touchStartPos.y / roomRect.h);
+                    const coord = `${rx},${ry}`;
+
+                    const targetRoom = gameData.rooms[coord];
+                    if (targetRoom) {
+                        selectedRoomCoord = coord;
+                        selectedItem = null; // 取消家具选中
+                        updateDeleteButtonState();
+                        
+                        // Logic: For passage, enter edit mode directly on first click
+                        if (targetRoom.type === 'passage') {
+                            // 如果已经在编辑模式，则切换通道格子状态
+                            if (isEditingPassage) {
+                                // Edit passage grid
+                                const lx = touchStartPos.x - rx * roomRect.w;
+                                const ly = touchStartPos.y - ry * roomRect.h;
+                                const c = Math.floor(lx / (roomRect.w / 3));
+                                const r = Math.floor(ly / (roomRect.h / 3));
+
+                                if (r >= 0 && r < 3 && c >= 0 && c < 3) {
+                                    if (!targetRoom.layout) targetRoom.layout = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+                                    targetRoom.layout[r][c] = targetRoom.layout[r][c] ? 0 : 1;
+                                    save(); // Auto save on edit
+                                }
+                            } else {
+                                // 如果不在编辑模式，则进入编辑模式
+                                isEditingPassage = true;
+                                showToast("现在可以点击通道格子来修改通道形状");
+                            }
+                        } else {
+                            // 普通房间，保持原有逻辑
+                            isEditingPassage = false;
+                            showToast(`已选中: ${coord}`);
+                        }
+                        isDragging = false;
+                        isPanning = false;
+                        lastTouchDistance = 0;
+                        touchStartPos = null;
+                        mouseStartPos = null;
+                        isTouchEvent = false;
+                        return;
+                    }
+                }
+
+                // 2. 如果选中了家具，显示删除按钮
+                if (selectedItem && !isBuildMode) {
+                    document.getElementById('delete-item-btn').style.display = 'block';
+                }
+
+                // 3. 如果是建造模式且点击空白，取消选中
+                if (isBuildMode && !selectedItem) {
+                    selectedRoomCoord = null;
+                    isEditingPassage = false; // 重置编辑模式状态
+                    updateDeleteButtonState();
+                }
+            } 
+            // 处理鼠标事件点击
+            else if (!isTouchEvent && !isDragging && !isPanning && mouseStartPos) {
+                // 1. 如果是建造模式，优先检测交互
+                if (isBuildMode) {
+                    if (checkBuildClick(mouseStartPos)) {
+                        isDragging = false;
+                        isPanning = false;
+                        lastTouchDistance = 0;
+                        touchStartPos = null;
+                        mouseStartPos = null;
+                        return;
+                    }
+
+                    // 检测是否点击了现有房间进行选中或编辑
+                    const rx = Math.floor(mouseStartPos.x / roomRect.w);
+                    const ry = Math.floor(mouseStartPos.y / roomRect.h);
+                    const coord = `${rx},${ry}`;
+
+                    const targetRoom = gameData.rooms[coord];
+                    if (targetRoom) {
+                        selectedRoomCoord = coord;
+                        selectedItem = null; // 取消家具选中
+                        updateDeleteButtonState();
+                        
+                        // Logic: For passage, enter edit mode directly on first click
+                        if (targetRoom.type === 'passage') {
+                            // 如果已经在编辑模式，则切换通道格子状态
+                            if (isEditingPassage) {
+                                // Edit passage grid
+                                const lx = mouseStartPos.x - rx * roomRect.w;
+                                const ly = mouseStartPos.y - ry * roomRect.h;
+                                const c = Math.floor(lx / (roomRect.w / 3));
+                                const r = Math.floor(ly / (roomRect.h / 3));
+
+                                if (r >= 0 && r < 3 && c >= 0 && c < 3) {
+                                    if (!targetRoom.layout) targetRoom.layout = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+                                    targetRoom.layout[r][c] = targetRoom.layout[r][c] ? 0 : 1;
+                                    save(); // Auto save on edit
+                                }
+                            } else {
+                                // 如果不在编辑模式，则进入编辑模式
+                                isEditingPassage = true;
+                                showToast("现在可以点击通道格子来修改通道形状");
+                            }
+                        } else {
+                            // 普通房间，保持原有逻辑
+                            isEditingPassage = false;
+                            showToast(`已选中: ${coord}`);
+                        }
+                        isDragging = false;
+                        isPanning = false;
+                        lastTouchDistance = 0;
+                        touchStartPos = null;
+                        mouseStartPos = null;
+                        return;
+                    }
+                }
+
+                // 2. 如果选中了家具，显示删除按钮
+                if (selectedItem && !isBuildMode) {
+                    document.getElementById('delete-item-btn').style.display = 'block';
+                }
+
+                // 3. 如果是建造模式且点击空白，取消选中
+                if (isBuildMode && !selectedItem) {
+                    selectedRoomCoord = null;
+                    isEditingPassage = false; // 重置编辑模式状态
+                    updateDeleteButtonState();
+                }
+            }
+            
+            isDragging = false;
+            isPanning = false;
+            lastTouchDistance = 0;
+            touchStartPos = null;
+            mouseStartPos = null;
+            hasTouched = false;
+            isTouchEvent = false;
+        }
+
+        // --- 核心功能函数 ---
+        function toggleBuildMode() {
+            isBuildMode = !isBuildMode;
+            const btn = document.getElementById('build-mode-btn');
+            const delBtn = document.getElementById('delete-room-btn');
+            const itemDelBtn = document.getElementById('delete-item-btn');
+            const mainMenu = document.getElementById('main-menu');
+            const subMenu = document.getElementById('sub-menu');
+
+            if (isBuildMode) {
+                btn.classList.add('active');
+                btn.innerText = "退出建造";
+                mainMenu.style.display = 'none';
+                subMenu.style.display = 'none';
+                itemDelBtn.style.display = 'none'; // 建造模式不显示家具删除按钮（显示房间删除）
+                delBtn.style.display = 'block';
+            } else {
+                btn.classList.remove('active');
+                btn.innerText = "🧱 建造模式";
+                mainMenu.style.display = 'flex';
+                // subMenu 保持原有 display: none 逻辑，由 toggleCat 控制
+                delBtn.style.display = 'none';
+                selectedRoomCoord = null;
+                isEditingPassage = false; // 重置编辑模式状态
+                updateDeleteButtonState();
+            }
+
+            showToast(isBuildMode ? "已进入建造模式" : "已退出建造模式");
+
+            // 自动缩放以便观察
+            if (isBuildMode) {
+                fitAllRooms();
+            }
+        }
+
+        function fitAllRooms() {
+            const coords = Object.keys(gameData.rooms);
+            if (coords.length === 0) return;
+
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            coords.forEach(key => {
+                const [rx, ry] = key.split(',').map(Number);
+                minX = Math.min(minX, rx);
+                maxX = Math.max(maxX, rx);
+                minY = Math.min(minY, ry);
+                maxY = Math.max(maxY, ry);
+            });
+
+            // Calculate Bounding Box dimensions in logic units
+            // Add slight padding to logic range for better visual
+            const totalW = (maxX - minX + 2.5) * roomRect.w; // +2.5 for generous padding
+            const totalH = (maxY - minY + 2.5) * roomRect.h;
+
+            // Center of BB
+            const cx = ((minX + maxX) / 2 + 0.5) * roomRect.w;
+            const cy = ((minY + maxY) / 2 + 0.5) * roomRect.h;
+
+            const screenW = canvas.width;
+            const screenH = canvas.height;
+
+            const scaleX = screenW / totalW;
+            const scaleY = screenH / totalH;
+            // Target scaling factor (real pixels per logic pixel) matches finalScale
+            // finalScale = view.baseScale * view.zoom;
+            // So view.zoom = targetFinalScale / view.baseScale
+
+            const targetFinalScale = Math.min(scaleX, scaleY);
+            view.zoom = targetFinalScale / view.baseScale;
+
+            // Recenter
+            view.x = (screenW / 2) - (cx * targetFinalScale);
+            view.y = (screenH / 2) - (cy * targetFinalScale);
+        }
+
+        function deleteSelectedRoom() {
+            if (!selectedRoomCoord || !isBuildMode) {
+                showToast("请先在建造模式下点击选中一个房间");
+                return;
+            }
+            if (selectedRoomCoord === "0,0") {
+                showToast("初始房间不可删除");
+                return;
+            }
+
+            // 检查房间内是否有家具
+            const [rx, ry] = selectedRoomCoord.split(',').map(Number);
+            const xMin = rx * roomRect.w;
+            const xMax = (rx + 1) * roomRect.w;
+            const yMin = ry * roomRect.h;
+            const yMax = (ry + 1) * roomRect.h;
+
+            const hasItems = gameData.items.some(item => {
+                const def = itemDefs[item.tid];
+                if (!def) return false;
+                const img = imageManager.getImage(def.imageKey);
+                const cx = item.x + (img ? img.naturalWidth / 2 : 0);
+                const cy = item.y + (img ? img.naturalHeight / 2 : 0);
+                return (cx >= xMin && cx < xMax && cy >= yMin && cy < yMax);
+            });
+
+            const doDelete = () => {
+                // 1. 删除房间
+                delete gameData.rooms[selectedRoomCoord];
+
+                // 2. 删除该房间内的家具
+                gameData.items = gameData.items.filter(item => {
+                    const def = itemDefs[item.tid];
+                    if (!def) return true;
+                    const img = imageManager.getImage(def.imageKey);
+                    const cx = item.x + (img ? img.naturalWidth / 2 : 0);
+                    const cy = item.y + (img ? img.naturalHeight / 2 : 0);
+                    return !(cx >= xMin && cx < xMax && cy >= yMin && cy < yMax);
+                });
+
+                selectedRoomCoord = null;
+                updateDeleteButtonState();
+                save();
+                showToast("房间已删除");
+            };
+
+            if (hasItems) {
+                customConfirm(`确认删除房间 ${selectedRoomCoord} 及其内部所有家具吗？`, doDelete);
+            } else {
+                doDelete();
+            }
+        }
+
+        function deleteSelectedItem() {
+            if (!selectedItem) return;
+            gameData.items = gameData.items.filter(it => it !== selectedItem);
+            selectedItem = null;
+            document.getElementById('delete-item-btn').style.display = 'none';
+            save();
+            showToast("家具已删除");
+        }
+
+        function zoomView(scale, isRelative = false) {
+            const oldZoom = view.zoom;
+            if (isRelative) {
+                view.zoom *= scale;
+            } else {
+                view.zoom *= scale;
+            }
+            view.zoom = Math.max(0.1, Math.min(view.zoom, 5.0));
+
+            const zoomChange = view.zoom / oldZoom;
+            // 简单的对齐：通过屏幕中心进行缩放
+            // 逻辑是：缩放前后，屏幕中心的逻辑坐标应该保持一致
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+
+            view.x = centerX - (centerX - view.x) * zoomChange;
+            view.y = centerY - (centerY - view.y) * zoomChange;
+        }
+
+        function addRoom(key, type = 'room', extraData = null) {
+            if (type === 'room') {
+                gameData.rooms[key] = { type: 'room' };
+            } else if (type === 'passage') {
+                gameData.rooms[key] = { type: 'passage', layout: extraData };
+            }
+            save();
+            showToast("建造完成");
+        }
+
+        // --- 建造系统 ---
+        function setBuildType(type) {
+            buildType = type;
+            const optRoom = document.getElementById('opt-room');
+            const optPassage = document.getElementById('opt-passage');
+
+            if (type === 'room') {
+                optRoom.classList.add('active');
+                optPassage.classList.remove('active');
+            } else {
+                optRoom.classList.remove('active');
+                optPassage.classList.add('active');
+            }
+        }
+
+        function toggleBuildMode() {
+            isBuildMode = !isBuildMode;
+            const btn = document.getElementById('build-mode-btn');
+            const buildControls = document.getElementById('build-controls');
+            const delBtn = document.getElementById('delete-room-btn');
+            const itemDelBtn = document.getElementById('delete-item-btn');
+            const mainMenu = document.getElementById('main-menu');
+            const subMenu = document.getElementById('sub-menu');
+
+            if (isBuildMode) {
+                // Determine previous view state
+                preBuildView = { x: view.x, y: view.y, zoom: view.zoom };
+
+                btn.classList.add('active');
+                btn.innerText = "退出建造";
+                mainMenu.style.display = 'none';
+                subMenu.style.display = 'none';
+                itemDelBtn.style.display = 'none';
+                delBtn.style.display = 'block';
+                buildControls.style.display = 'flex';
+                // Reset to default
+                setBuildType('room');
+
+                // Auto fit
+                fitAllRooms();
+            } else {
+                btn.classList.remove('active');
+                btn.innerText = "🧱 建造模式";
+                mainMenu.style.display = 'flex';
+                delBtn.style.display = 'none';
+                buildControls.style.display = 'none';
+                selectedRoomCoord = null;
+                updateDeleteButtonState();
+
+                // Restore previous view if available
+                if (preBuildView) {
+                    view.x = preBuildView.x;
+                    view.y = preBuildView.y;
+                    view.zoom = preBuildView.zoom;
+                    preBuildView = null;
+                }
+            }
+        }
+
+
+        function checkBuildClick(p) {
+            const neighbors = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+            const potentialRooms = [];
+
+            for (let coord in gameData.rooms) {
+                const [rx, ry] = coord.split(',').map(Number);
+                neighbors.forEach(([dx, dy]) => {
+                    const nx = rx + dx, ny = ry + dy;
+                    const nKey = `${nx},${ny}`;
+                    if (!gameData.rooms[nKey]) potentialRooms.push({ key: nKey, x: nx, y: ny });
+                });
+            }
+
+            for (let r of potentialRooms) {
+                const bx = r.x * roomRect.w;
+                const by = r.y * roomRect.h;
+
+                // 检查是否点击了该区域
+                if (p.x >= bx && p.x <= bx + roomRect.w &&
+                    p.y >= by && p.y <= by + roomRect.h) {
+
+                    if (buildType === 'room') {
+                        addRoom(r.key, 'room');
+                    } else {
+                        // 默认十字星: 中间行全满，中间列全满
+                        const crossLayout = [
+                            [0, 1, 0],
+                            [1, 1, 1],
+                            [0, 1, 0]
+                        ];
+                        addRoom(r.key, 'passage', crossLayout);
+                    }
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function drawBuildIcons() {
+            const potentialRooms = new Set();
+            const neighbors = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+            for (let coord in gameData.rooms) {
+                const [rx, ry] = coord.split(',').map(Number);
+                neighbors.forEach(([dx, dy]) => {
+                    const nx = rx + dx, ny = ry + dy;
+                    const nKey = `${nx},${ny}`;
+                    if (!gameData.rooms[nKey]) {
+                        potentialRooms.add(nKey);
+                    }
+                });
+            }
+
+            ctx.save();
+            potentialRooms.forEach(key => {
+                const [rx, ry] = key.split(',').map(Number);
+                const bx = rx * roomRect.w;
+                const by = ry * roomRect.h;
+
+                // 绘制半透明背景指示位置
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+                ctx.fillRect(bx + 4, by + 4, roomRect.w - 8, roomRect.h - 8);
+
+                // 绘制 "+"
+                if (buildType === 'passage') {
+                    ctx.fillStyle = "#3498db"; // Blue
+                } else {
+                    ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+                }
+                ctx.font = `${roomRect.h * 0.3}px Arial`;
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText("+", bx + roomRect.w / 2, by + roomRect.h / 2);
+            });
+            ctx.restore();
+        }
+
+
+        // --- UI & Helper ---
+        let curCat = null;
+        function toggleCat(cat) {
+            const sub = document.getElementById('sub-menu');
+            const btns = document.querySelectorAll('.cat-btn');
+            btns.forEach(b => b.classList.remove('active'));
+
+            if (curCat === cat) {
+                sub.classList.remove('visible');
+                setTimeout(() => sub.style.display = 'none', 200);
+                curCat = null;
+            } else {
+                curCat = cat;
+                sub.innerHTML = '';
+
+                if (catalog[cat]) {
+                    const itemsContainer = document.createElement('div');
+                    itemsContainer.className = 'items-container';
+
+                    let allItems = [];
+                    for (let subcategory in catalog[cat]) {
+                        allItems = allItems.concat(catalog[cat][subcategory]);
+                    }
+
+                    allItems.forEach(item => {
+                        const itemDiv = document.createElement('div');
+                        itemDiv.className = 'item-image-btn';
+
+                        const img = document.createElement('img');
+                        img.src = imageMap[item.id];
+                        img.onerror = function () {
+                            this.style.display = 'none';
+                            itemDiv.innerText = item.name;
+                            itemDiv.style.color = 'white';
+                            itemDiv.style.fontSize = '12px';
+                        };
+
+                        itemDiv.appendChild(img);
+                        itemDiv.onclick = (e) => { e.stopPropagation(); spawnItem(item.id); };
+                        itemsContainer.appendChild(itemDiv);
+                    });
+                    sub.appendChild(itemsContainer);
+                }
+
+                sub.style.display = 'flex';
+                requestAnimationFrame(() => sub.classList.add('visible'));
+            }
+        }
+
+        function closeMenu() { if (curCat) toggleCat(curCat); }
+
+        function save() { localStorage.setItem('shelter_single_room', JSON.stringify(gameData)); }
+        function load() {
+            const s = localStorage.getItem('shelter_single_room');
+            if (s) {
+                gameData = JSON.parse(s);
+                // 确保 rooms 存在 (兼容旧存档)
+                if (!gameData.rooms) gameData.rooms = { "0,0": true };
+            }
+            // 兼容性清洗
+            if (gameData.floors) { // 如果是更旧的存档
+                gameData = { items: [], rooms: { "0,0": true } };
+            }
+        }
+
+        function resetGame() {
+            customConfirm("确定要重置避难所吗？这将清空所有家具并只保留初始房间，且不可恢复！", () => {
+                gameData = { items: [], rooms: { "0,0": true } };
+                selectedItem = null;
+                selectedRoomCoord = null;
+                updateDeleteButtonState();
+                save();
+                showToast("已重置");
+            });
+        }
+
+        function customConfirm(msg, onConfirm) {
+            const modal = document.getElementById('confirm-modal');
+            const msgEl = document.getElementById('modal-msg');
+            const confirmBtn = document.getElementById('modal-confirm');
+            const cancelBtn = document.getElementById('modal-cancel');
+
+            msgEl.innerText = msg;
+            modal.style.display = 'flex';
+
+            confirmBtn.onclick = (e) => {
+                e.stopPropagation();
+                modal.style.display = 'none';
+                if (onConfirm) onConfirm();
+            };
+
+            cancelBtn.onclick = (e) => {
+                e.stopPropagation();
+                modal.style.display = 'none';
+            };
+        }
+
+        function showToast(m) {
+            const t = document.getElementById('toast');
+            t.innerText = m;
+            t.style.opacity = 1;
+            setTimeout(() => t.style.opacity = 0, 1500);
+        }
+
+        function updateDeleteButtonState() {
+            const deleteBtn = document.getElementById('delete-room-btn');
+            if (selectedRoomCoord && isBuildMode) {
+                deleteBtn.classList.remove('disabled');
+            } else {
+                deleteBtn.classList.add('disabled');
+            }
+        }
+
+        window.addEventListener('resize', resize);
+        canvas.addEventListener('mousedown', handleStart);
+        canvas.addEventListener('mousemove', handleMove);
+        canvas.addEventListener('mouseup', handleEnd);
+        canvas.addEventListener('touchstart', handleStart, { passive: false });
+        canvas.addEventListener('touchmove', handleMove, { passive: false });
+        canvas.addEventListener('touchend', handleEnd);
+
+        // 添加底部菜单的触摸滑动支持
+        const mainMenu = document.getElementById('main-menu');
+        let isScrolling = false;
+        let startX = 0;
+        let scrollLeft = 0;
+
+        // 触摸事件
+        mainMenu.addEventListener('touchstart', (e) => {
+            isScrolling = true;
+            startX = e.touches[0].pageX - mainMenu.offsetLeft;
+            scrollLeft = mainMenu.scrollLeft;
+        }, { passive: true });
+
+        mainMenu.addEventListener('touchmove', (e) => {
+            if (!isScrolling) return;
+            e.preventDefault();
+            const x = e.touches[0].pageX - mainMenu.offsetLeft;
+            const walk = (x - startX) * 2; // 滚动速度
+            mainMenu.scrollLeft = scrollLeft - walk;
+        }, { passive: false });
+
+        mainMenu.addEventListener('touchend', () => {
+            isScrolling = false;
+        });
+
+        // 鼠标事件
+        mainMenu.addEventListener('mousedown', (e) => {
+            isScrolling = true;
+            startX = e.pageX - mainMenu.offsetLeft;
+            scrollLeft = mainMenu.scrollLeft;
+            mainMenu.style.cursor = 'grabbing'; // 改变鼠标样式
+        });
+
+        mainMenu.addEventListener('mousemove', (e) => {
+            if (!isScrolling) return;
+            e.preventDefault();
+            const x = e.pageX - mainMenu.offsetLeft;
+            const walk = (x - startX) * 2; // 滚动速度
+            mainMenu.scrollLeft = scrollLeft - walk;
+        });
+
+        mainMenu.addEventListener('mouseup', () => {
+            isScrolling = false;
+            mainMenu.style.cursor = 'grab'; // 恢复鼠标样式
+        });
+
+        mainMenu.addEventListener('mouseleave', () => {
+            isScrolling = false;
+            mainMenu.style.cursor = 'grab'; // 恢复鼠标样式
+        });
+
+        // 设置初始鼠标样式
+        mainMenu.style.cursor = 'grab';
+
+    </script>
 </body>
+
 </html>
