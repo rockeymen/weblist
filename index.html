@@ -1787,7 +1787,60 @@
         // 设置初始鼠标样式
         mainMenu.style.cursor = 'grab';
 
-    </script>
+    
+        // 防止资源被保存的保护措施
+        // 禁用右键菜单
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            alert('右键菜单已禁用，以保护资源。');
+        });
+
+        // 禁止图片拖放
+        document.addEventListener('dragstart', function(e) {
+            if (e.target.tagName === 'IMG') {
+                e.preventDefault();
+            }
+        });
+
+        // 禁止保存快捷键
+        document.addEventListener('keydown', function(e) {
+            // Ctrl + S
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                alert('保存功能已禁用。');
+            }
+            // Ctrl + Shift + S
+            if (e.ctrlKey && e.shiftKey && e.key === 's') {
+                e.preventDefault();
+                alert('保存功能已禁用。');
+            }
+            // Ctrl + P (打印)
+            if (e.ctrlKey && e.key === 'p') {
+                e.preventDefault();
+                alert('打印功能已禁用。');
+            }
+            // F12 (开发者工具)
+            if (e.key === 'F12') {
+                e.preventDefault();
+                alert('开发者工具已禁用。');
+            }
+            // Ctrl + Shift + I (开发者工具)
+            if (e.ctrlKey && e.shiftKey && e.key === 'I') {
+                e.preventDefault();
+                alert('开发者工具已禁用。');
+            }
+            // Ctrl + Shift + J (开发者工具)
+            if (e.ctrlKey && e.shiftKey && e.key === 'J') {
+                e.preventDefault();
+                alert('开发者工具已禁用。');
+            }
+            // Ctrl + U (查看源代码)
+            if (e.ctrlKey && e.key === 'u') {
+                e.preventDefault();
+                alert('查看源代码功能已禁用。');
+            }
+        });
+</script>
 </body>
 
 </html>
