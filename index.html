@@ -762,10 +762,10 @@
 
             const ts = Date.now() + 1; // Force new timestamp
             roomImg = new Image(); roomImg.onload = onLoaded; roomImg.onerror = () => onError(roomImg.src);
-            roomImg.src = 'img/background/room.PNG?v=' + ts;
+            roomImg.src = 'img/background/room.png?v=' + ts;
 
             roomBlankImg = new Image(); roomBlankImg.onload = onLoaded; roomBlankImg.onerror = () => onError(roomBlankImg.src);
-            roomBlankImg.src = 'img/background/room_blank.PNG?v=' + ts;
+            roomBlankImg.src = 'img/background/room_blank.png?v=' + ts;
 
             passageHImg = new Image(); passageHImg.onload = onLoaded; passageHImg.onerror = () => onError('img/background/passage_v.png');
             passageHImg.src = 'img/background/passage_h.png?v=' + ts;
